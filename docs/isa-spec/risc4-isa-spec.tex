@@ -102,6 +102,26 @@
 % Binary value
 \newcommand{\bin}[1]{\texttt{0b#1}}
 
+% Preamble Definition
+\newcommand{\instructionDef}[6]{
+    \begin{table}[h]
+    \centering          % Centers the table
+    \small              % Keeps the font compact
+    \begin{tabular}{@{}ll@{}}
+    \toprule
+    \textbf{Field} & \textbf{Value} \\
+    \midrule
+    Opcode    & \hex{#1} \\
+    Format    & #2 \\
+    Encoding  & \texttt{#3} \\
+    Operation & #4 \\
+    Flags     & #5 \\
+    Cycles    & #6 \\
+    \bottomrule
+    \end{tabular}
+    \end{table}
+}
+
 % ============================================================
 % DOCUMENT START
 % ============================================================
@@ -221,7 +241,7 @@ RISC-4 provides 16 general-purpose registers, each 4 bits wide. While all regist
 \caption{Register File Organization}
 \label{tab:registers}
 \end{table}
-
+\pagebreak
 \subsection{Register \reg{0} (zero)}
 
 Register \reg{0} is hardwired to the constant value zero:
@@ -239,6 +259,34 @@ Each register holds values in the range:
     \item Signed (two's complement): -8 to +7
 \end{itemize}
 
+\section{Effective Addressing & Register Pairs}
+
+To address memory beyond the 4-bit limit of a single register, RISC-4 utilizes \textbf{Register Pairing}. When a register is used as a base address for memory operations, the processor implicitly accesses the specified register and its neighbor to form an 8-bit address.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+\textbf{Pointer Name} & \textbf{High Nibble (4-bit)} & \textbf{Low Nibble (4-bit)} \\
+\midrule
+Pair 0 & r0 & r1 \\
+Pair 2 & r2 & r3 \\
+... & ... & ... \\
+Frame Pointer (fp) & r12 & r13 \\
+Stack Pointer (sp) & r14 & r15 \\
+\bottomrule
+\end{tabular}
+\caption{Register Pair Organization}
+\label{tab:pairs}
+\end{table}
+
+\noindent \textbf{Rules for Pairing:}
+\begin{enumerate}
+    \item \textbf{Alignment:} Base registers in load/store instructions must be even-numbered (e.g., r14, r12).
+    \item \textbf{Formation:} \texttt{Address = (High\_Reg << 4) | Low\_Reg}.
+    \item \textbf{Range:} This allows for a Data Address Space of 256 nibbles (\hex{00} to \hex{FF}).
+\end{enumerate}
+
 % ============================================================
 % CHAPTER 3: INSTRUCTION FORMATS
 % ============================================================
@@ -248,70 +296,70 @@ All RISC-4 instructions are exactly 16 bits wide, divided into four formats base
 
 \section{Format Summary}
 
-\subsection{R-Type: Register Operations}
+The RISC-4 ISA uses fixed 16-bit instructions aligned on 16-bit boundaries. The primary opcode is always located in the most significant 4 bits [15:12].
 
-Used for arithmetic, logic, and shift operations with three register operands.
-
-\begin{figure}[H]
-\centering
-\begin{bytefield}[bitwidth=1.5em]{16}
-    \bitheader{0,4,8,12,15} \\
-    \bitbox{4}{op} &
-    \bitbox{4}{rd} &
-    \bitbox{4}{rs} &
-    \bitbox{4}{rt}
-\end{bytefield}
-\caption{R-Type Instruction Format}
-\label{fig:rtype}
-\end{figure}
-
-\subsection{I-Type: Immediate Operations}
-
-Used for immediate arithmetic, logic, and branches.
+Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across the different instruction types.
 
 \begin{figure}[H]
 \centering
+% Define a macro for row labels to ensure consistent spacing
+\newcommand{\fmtlabel}[1]{\makebox[1.5cm][r]{\textbf{#1} \hspace{1em}}}
+
+% R-Type
+\fmtlabel{R-Type}
 \begin{bytefield}[bitwidth=1.5em]{16}
-    \bitheader{0,8,12,15} \\
-    \bitbox{4}{op} &
-    \bitbox{4}{rd} &
-    \bitbox{8}{imm8}
+    \bitheader{0,3,4,7,8,11,12,15} \\
+    \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{rd} & \bitbox{4}{rs} & \bitbox{4}{rt}
 \end{bytefield}
-\caption{I-Type Instruction Format}
-\label{fig:itype}
+\vspace{0.5cm} % Spacing between rows
+
+% I-Type (Arithmetic)
+\fmtlabel{I-Type (Arith)}
+\begin{bytefield}[bitwidth=1.5em]{16}
+    \bitheader{0,3,4,7,8,11,12,15} \\
+    \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{rd} & \bitbox{4}{rs} & \bitbox{4}{imm4}
+\end{bytefield}
+\vspace{0.5cm}
+
+% I-Type (Branch)
+\fmtlabel{I-Type (Branch)}
+\begin{bytefield}[bitwidth=1.5em]{16}
+    \bitheader{0,7,8,11,12,15} \\
+    \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{cond} & \bitbox{8}{offset8}
+\end{bytefield}
+\vspace{0.5cm}
+
+% M-Type
+\fmtlabel{M-Type}
+\begin{bytefield}[bitwidth=1.5em]{16}
+    \bitheader{0,3,4,7,8,11,12,15} \\
+    \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{rd / rs} & \bitbox{4}{base} & \bitbox{4}{offset4}
+\end{bytefield}
+\vspace{0.5cm}
+
+% J-Type
+\fmtlabel{J-Type}
+\begin{bytefield}[bitwidth=1.5em]{16}
+    \bitheader{0,11,12,15} \\
+    \bitbox{4}{\textbf{Opcode}} & \bitbox{12}{target12}
+\end{bytefield}
+
+\caption{RISC-4 Instruction Format Summary}
+\label{fig:formatsummary}
 \end{figure}
 
-\subsection{J-Type: Jump Operations}
-
-Used for unconditional jumps with large displacement.
-
-\begin{figure}[H]
-\centering
-\begin{bytefield}[bitwidth=1.5em]{16}
-    \bitheader{0,12,15} \\
-    \bitbox{4}{op} &
-    \bitbox{12}{addr12}
-\end{bytefield}
-\caption{J-Type Instruction Format}
-\label{fig:jtype}
-\end{figure}
-
-\subsection{M-Type: Memory Operations}
-
-Used for load and store instructions with base+offset addressing.
-
-\begin{figure}[H]
-\centering
-\begin{bytefield}[bitwidth=1.5em]{16}
-    \bitheader{0,4,8,12,15} \\
-    \bitbox{4}{op} &
-    \bitbox{4}{rd} &
-    \bitbox{4}{base} &
-    \bitbox{4}{offset}
-\end{bytefield}
-\caption{M-Type Instruction Format}
-\label{fig:mtype}
-\end{figure}
+\noindent \textbf{Field Definitions:}
+\begin{itemize}
+    \item \textbf{Opcode:} Primary instruction operation code [15:12].
+    \item \textbf{rd:} Destination register operand [11:8].
+    \item \textbf{rs:} Source register 1 operand [7:4] (or [11:8] for store).
+    \item \textbf{rt:} Source register 2 operand [3:0] (R-Type only).
+    \item \textbf{imm4/offset4:} 4-bit immediate value or memory offset [3:0].
+    \item \textbf{base:} Register pair base address pointer [7:4].
+    \item \textbf{cond:} Branch condition code [11:8] (replaces rd).
+    \item \textbf{offset8:} 8-bit signed branch offset [7:0].
+    \item \textbf{target12:} 12-bit absolute jump address [11:0].
+\end{itemize}
 
 % ============================================================
 % CHAPTER 4: INSTRUCTION SET
@@ -335,21 +383,22 @@ Table~\ref{tab:opcodes} lists all RISC-4 instructions.
 \hex{3} & OR   & R & Bitwise OR \\
 \hex{4} & XOR  & R & Bitwise XOR \\
 \hex{5} & SLT  & R & Set less than \\
-\hex{6} & SLL  & R & Shift left logical \\
-\hex{7} & SRL  & R & Shift right logical \\
+\hex{6} & SHF  & I & Shift (Left/Right) Immediate \\
+\hex{7} & EXT  & R & Extended Math (ADC, SBB, NEG) \\
 \hex{8} & ADDI & I & Add immediate \\
 \hex{9} & ANDI & I & AND immediate \\
 \hex{A} & ORI  & I & OR immediate \\
 \hex{B} & SLTI & I & Set less than immediate \\
 \hex{C} & LW   & M & Load word \\
 \hex{D} & SW   & M & Store word \\
-\hex{E} & Bxx  & I & Branch (4 conditions) \\
-\hex{F} & Jxx  & J & Jump (3 variants) \\
+\hex{E} & Bxx  & I & Conditional Branch \\
+\hex{F} & J    & J & Unconditional Jump \\
 \bottomrule
 \end{tabular}
 \caption{RISC-4 Opcode Map}
 \label{tab:opcodes}
 \end{table}
+\pagebreak
 
 \section{Arithmetic Instructions}
 
@@ -359,22 +408,9 @@ Table~\ref{tab:opcodes} lists all RISC-4 instructions.
 ADD rd, rs, rt
 \end{lstlisting}
 
-\begin{table}[h]
-\small
-\begin{tabular}{@{}ll@{}}
-\toprule
-\textbf{Field} & \textbf{Value} \\
-\midrule
-Opcode & \hex{0} \\
-Format & R-type \\
-Operation & \texttt{rd <- rs + rt} \\
-Flags & Carry \\
-Cycles & 4 (single-cycle impl: 1) \\
-\bottomrule
-\end{tabular}
-\end{table}
+\instructionDef{0}{R-type}{0000 dddd ssss tttt}{rd \leftarrow rs + rt}{Carry}{4 (single-cycle impl: 1)}
 
-\textbf{Description:} Adds the contents of registers \texttt{rs} and \texttt{rt}, storing the 4-bit result in \texttt{rd}. The carry-out is stored in the carry flag.
+\noindent \textbf{Description:} Adds the contents of registers \texttt{rs} and \texttt{rt}, storing the 4-bit result in \texttt{rd}. The carry-out is stored in the carry flag.
 
 \textbf{Example:}
 \begin{lstlisting}
@@ -382,7 +418,252 @@ ADD r3, r1, r2    # r3 = r1 + r2
 # If r1 = 7, r2 = 9: r3 = 0, carry = 1
 \end{lstlisting}
 
-% ... Continue with all instructions ...
+\subsection{SUB -- Subtract}
+\begin{lstlisting}
+SUB rd, rs, rt
+\end{lstlisting}
+
+\instructionDef{1}{R-type}{0001 dddd ssss tttt}{rd \leftarrow rs - rt}{Carry}{4 (single-cycle impl: 1)}
+
+
+\noindent \textbf{Description:} Subtracts the contents of registers \texttt{rs} and \texttt{rt}, storing the 4-bit result in \texttt{rd}. The carry-out is stored in the carry flag.
+
+\textbf{Example:}
+\begin{lstlisting}
+SUB r4, r5, r6 # r4 = r5 - r6
+# If r5=3, r6=5: r4=16 (0xE = -2 in two's compliment), C=1
+\end{lstlisting}
+
+\pagebreak
+\subsection{AND -- Bitwise AND}
+\begin{lstlisting}
+AND rd, rs, rt
+\end{lstlisting}
+
+\instructionDef{2}{R-type}{0010 dddd ssss tttt}{rd \leftarrow & rt}{None}{4 (single-cycle impl: 1)}
+
+\noindent \textbf{Description:} Bitwise AND compare operation on registers \textbf{rs} and \textbf{rt}, results stored in \textbf{rd}. No Carry flag
+
+\textbf{Example:}
+\begin{lstlisting}
+AND r7, r8, r9,  # r7 = r8 & r9
+# if r8= 0b1010, r9=0b1100: r7=0b1000
+\end{lstlisting}
+
+\subsection{OR -- Bitwise OR}
+\begin{lstlisting}
+OR rd, rs, rt
+\end{lstlisting}
+
+\instructionDef{3}{R-type}{0011 dddd ssss tttt}{rd \leftarrow rs \mid rt}{None}{4 (single-cycle impl: 1)}
+
+\noindent \textbf{Description:} Bitwise OR compare operation on registers \textbf{rs} and \textbf{rt}, results store in \textbf{rd}. No Carry flag
+
+\textbf{Example:}
+\begin{lstlisting}
+OR r2, r3, r0,  # r2 = r3 | 0 = r3 # used for MOV ops
+# if r2=0b0101, r3=0b0011 | r0=0: r2=0b0011
+\end{lstlisting}
+
+\pagebreak
+\subsection{XOR -- Bitwise Exclusive OR}
+\begin{lstlisting}
+XOR rd, rs, rt
+\end{lstlisting}
+
+\instructionDef{4}{R-type}{0100 dddd ssss tttt}{rd \leftarrow rs \veebar rt}{None}{4 (single-cycle impl: 1)}
+
+\noindent \textbf{Description:} Bitwise eXclusive OR compare operation on registers \textbf{rs} and \textbf{rt}, results store in \textbf{rd}. No Carry flag
+
+\textbf{Example:}
+\begin{lstlisting}
+XOR r1, r1, r1 #Clear r1
+\end{lstlisting}
+\subsection{SLT -- Set Less Than (Signed)}
+\begin{lstlisting}
+SLT rd, rs, rt
+\end{lstlisting}
+\instructionDef{5}{R-type}{0101 dddd ssss tttt}{rd \leftarrow (rs < rt) ? 1 : 0 (signed comparison)}{None}{4 (single-cycle impl: 1)}
+
+\noindent \textbf{Description:} Set Less Than performs a signed comparison of \textbf{rs} and \textbf{rt} if \textbf{rs} is less than \textbf{rt} then \textbf{rd} is set to 1, if not \textbf{rd} is set to 0.
+
+\textbf{Example:}
+\begin{lstlisting}
+SLT r1, r2, r3    # if r2 < r3, r1=1, else r1=0
+# If r2=0xF (-1 signed), r3=0x1 (1): r1=1 (true)
+# If r2=0x5 (5), r3=0x3 (3): r1=0 (false)
+\end{lstlisting}
+
+
+\pagebreak
+\section{Extended Arithmetic Instructions}
+\label{sec:ext_alu}
+
+These instructions share Opcode 7 and use a 2-operand destructive format (\texttt{rd} is both source and destination) to allow for a 4-bit function code.
+
+\subsection{ADC -- Add with Carry}
+\begin{lstlisting}
+ADC rd, rs
+\end{lstlisting}
+\instructionDef{7}{R-type}{0111 dddd ssss 0000}{rd \leftarrow rd + rs + Carry}{Carry}{4}
+
+\noindent \textbf{Description:} Adds \texttt{rs} and the current Carry flag to \texttt{rd}. Used for multi-nibble addition.
+
+\subsection{SBB -- Subtract with Borrow}
+\begin{lstlisting}
+SBB rd, rs
+\end{lstlisting}
+\instructionDef{7}{R-type}{0111 dddd ssss 0001}{rd \leftarrow rd - rs - Carry}{Carry}{4}
+
+\noindent \textbf{Description:} Subtracts \texttt{rs} and the Carry flag (borrow) from \texttt{rd}. Used for multi-nibble subtraction.
+
+\subsection{NEG -- Negate (Two's Complement)}
+\begin{lstlisting}
+NEG rd, rs
+\end{lstlisting}
+\instructionDef{7}{R-type}{0111 dddd ssss 0010}{rd \leftarrow 0 - rs}{Carry}{4}
+
+\noindent \textbf{Description:} Computes the two's complement of \texttt{rs} and stores it in \texttt{rd}. (Pseudo-equivalent to \texttt{SUB rd, r0, rs}).
+\section{Immediate Arithmetic Instructions}
+\subsection{ADDI -- ADD Immediate}
+\begin{lstlisting}
+ADDI rd,rs, imm4
+\end{lstlisting}
+\instructionDef{8}{1000 dddd ssss iiii}{I-type}{rd \leftarrow rs + sign_extend(imm4)}{Carry}{4 (single-cycle impl: 1)}
+
+\noindent \textbf{Description:} ADD Immediate adds the sign-extended 4-bit immediate \texttt{imm4} to the contents of register \texttt{rs}, storing the result in \texttt{rd}. This allows for incrementing and decrementing (using negative immediates).
+
+\textbf{Example:}
+\begin{lstlisting}
+ADDI r1, r2, 5 # r1 = r2 + 5
+ADDI r3, r3, -1 # r3 = r3 - 1 (can subtract)
+\end{lstlisting}
+\noindent \textbf{Note on Negative Immediates:}
+Since the immediate field is 4 bits wide, it can represent values from -8 to +7. The processor treats the binary value as a signed two's complement number.
+\begin{itemize}
+    \item \textbf{Subtraction:} To subtract 1, use the immediate \hex{F} (\bin{1111}), which represents -1 in two's complement.
+    \item \textbf{Calculation:} \bin{0011} (3) + \bin{1111} (-1) = \bin{10010} $\rightarrow$ Result \bin{0010} (2), Carry Set.
+\end{itemize}
+
+\subsection{ANDI -- AND Immediate}
+\begin{lstlisting}
+ANDI rd, rs, imm4
+\end{lstlisting}
+\instructionDef{9}{I-type}{1001 dddd ssss iiii}{rd \leftarrow rs \ \& \ zero\_extend(imm4)}{None}{4}
+
+\noindent \textbf{Description:} Performs a bitwise AND between register \texttt{rs} and the 4-bit immediate, storing the result in \texttt{rd}.
+\textbf{Note:} Since the register is 4 bits, the mask \texttt{imm4} covers all bits.
+
+\textbf{Example:}
+\begin{lstlisting}
+ANDI r1, r2, 0xF  # r1 = r2 & 1111 (Copy r2)
+ANDI r1, r2, 0x1  # r1 = r2 & 0001 (Extract lowest bit)
+\end{lstlisting}
+
+\pagebreak
+
+\subsection{ORI -- OR Immediate}
+\begin{lstlisting}
+ORI rd, rs, imm4
+\end{lstlisting}
+\instructionDef{A}{I-type}{1010 dddd ssss iiii}{rd \leftarrow rs \ | \ zero\_extend(imm4)}{None}{4}
+
+\noindent \textbf{Description:} Performs a bitwise OR between register \texttt{rs} and the 4-bit immediate, storing the result in \texttt{rd}.
+
+\subsection{SLTI -- Set Less Than Immediate}
+\begin{lstlisting}
+SLTI rd, rs, imm4
+\end{lstlisting}
+\instructionDef{B}{I-type}{1011 dddd ssss iiii}{rd \leftarrow (rs < sign\_extend(imm4)) ? 1 : 0}{None}{4}
+
+\noindent \textbf{Description:} Compares \texttt{rs} to the signed 4-bit immediate. If \texttt{rs} is strictly smaller, \texttt{rd} is set to 1, otherwise 0.
+\pagebreak
+\section{Memory Instructions}
+\subsection{LW -- Load Word}
+\begin{lstlisting}
+LW rd, offset(base)
+\end{lstlisting}
+\instructionDef{C}{M-type}{1100 dddd bbbb oooo}{rd \leftarrow mem[reg\_pair(base) + sign\_extend(offset)]}{None}{5}
+
+\noindent \textbf{Description:} Loads a 4-bit nibble from data memory into \texttt{rd}.
+\textbf{Addressing:} The effective address is calculated by taking the 8-bit value in the register pair specified by \texttt{base} (must be even) and adding the sign-extended 4-bit \texttt{offset}.
+
+\textbf{Example:}
+\begin{lstlisting}
+# Assume r14=0x8, r15=0x0 (Stack Pointer = 0x80)
+LW r1, 4(r14)      # Address = 0x80 + 4 = 0x84
+                   # r1 gets value at mem[0x84]
+\end{lstlisting}
+
+
+\subsection{SW -- Store Word}
+\begin{lstlisting}
+SW rs, offset(base)
+\end{lstlisting}
+\instructionDef{D}{M-type}{1101 ssss bbbb oooo}{mem[reg\_pair(base) + sign\_extend(offset)] \leftarrow rs}{None}{5}
+
+\noindent \textbf{Description:} Stores the 4-bit value from \texttt{rs} into data memory.
+\textbf{Note:} \texttt{base} must be an even-numbered register representing a pair.
+
+\textbf{Example:}
+\begin{lstlisting}
+# Push r2 to stack
+# 1. Decrement SP (r14:r15) - Requires multi-step math or software convention
+# 2. Store
+SW r2, 0(r14)      # mem[sp] = r2
+\end{lstlisting}
+
+\section{Control Flow Instructions}
+
+\subsection{Bxx -- Conditional Branch}
+\begin{lstlisting}
+BEQ offset8   # Branch if Equal (Z=1)
+BNE offset8   # Branch if Not Equal (Z=0)
+BCS offset8   # Branch if Carry Set (C=1)
+BCC offset8   # Branch if Carry Clear (C=0)
+\end{lstlisting}
+\instructionDef{E}{I-type}{1110 cccc oooooooo}{if (cond) pc \leftarrow pc + sign\_extend(offset8)}{None}{3}
+
+\noindent \textbf{Description:} Branches relative to the current PC if the condition specified by the 4-bit \texttt{cond} field is met.
+\begin{itemize}
+    \item \textbf{Encoding (cccc):} 0000 (EQ), 0001 (NE), 0010 (CS/LT), 0011 (CC/GE).
+    \item \textbf{Offset:} 8-bit signed offset allows jumping forward/backward by 128 nibbles.
+\end{itemize}
+
+\subsection{J -- Jump (Unconditional)}
+\begin{lstlisting}
+J target12
+\end{lstlisting}
+\instructionDef{F}{J-type}{1111 aaaa aaaa aaaa}{pc \leftarrow target12}{None}{3}
+
+\noindent \textbf{Description:} Unconditional absolute jump to the 12-bit address \texttt{target12}. This allows jumping to any location in the 4096-nibble instruction memory.
+
+%======================================
+% CHAPTER 4 ADRESSING
+%======================================
+\chapter{Addressing}
+\section{Extended Precision & Addressing}
+
+Since RISC-4 uses a 4-bit datapath but requires a 12-bit address space, it utilizes \textbf{Register Pairing} to handle pointers and large integers.
+
+\subsection{Register Pairs}
+When an instruction requires an operand wider than 4 bits (specifically Load/Store addresses), the architecture implicitly uses the specified register and the following consecutive register(s) to form the value.
+
+For Memory Operations (\texttt{LW}, \texttt{SW}), the \texttt{base} register implies a \textbf{aligned pair}:
+\begin{itemize}
+    \item \textbf{Pairing Rule:} A pointer consists of \texttt{r[n]} (high nibble) and \texttt{r[n+1]} (low nibble).
+    \item \textbf{Stack Pointer:} The assembly alias \texttt{sp} refers to the pair \texttt{r14:r15}.
+    \item \textbf{Frame Pointer:} The alias \texttt{fp} refers to the pair \texttt{r12:r13}.
+\end{itemize}
+
+\subsection{Multi-Precision Arithmetic}
+To perform math on numbers larger than 4 bits (e.g., 8-bit integers), software must chain instructions using the Carry flag.
+
+\textbf{Example: 8-bit Addition (r0:r1 = r2:r3 + r4:r5)}
+\begin{lstlisting}
+ADD r1, r3, r5    # Add lower nibbles (r3 + r5) -> result in r1, sets Carry
+ADC r0, r2, r4    # Add upper nibbles with Carry -> result in r0
+\end{lstlisting}
 
 % ============================================================
 % CHAPTER 5: CALLING CONVENTION
@@ -390,16 +671,25 @@ ADD r3, r1, r2    # r3 = r1 + r2
 \chapter{Calling Convention}
 
 \section{Function Prologue}
-
-A typical function prologue saves the return address and frame pointer:
+Managing the 8-bit Stack Pointer (\texttt{sp = r14:r15}) requires careful handling of carries when allocating stack frames.
 
 \begin{lstlisting}
 function:
-    ADDI r14, r14, -4    # Allocate 4 nibbles
-    SW   r1,  3(r14)     # Save return address
-    SW   r15, 2(r14)     # Save frame pointer
-    ADDI r15, r14, 4     # New frame pointer
-    # ... function body ...
+    # Allocate 4 nibbles (Decrement SP by 4)
+    # Since we lack a 16-bit SUB, we do this in steps:
+    ADDI r15, r15, -4    # Subtract 4 from low nibble
+    # Note: A real implementation must check for borrow here
+    # and decrement r14 if needed.
+
+    # Save Return Address (r1) to [sp + 3]
+    SW   r1, 3(r14)      # Store r1 at address (r14:r15 + 3)
+
+    # Save Frame Pointer (r12) to [sp + 2]
+    SW   r12, 2(r14)
+
+    # Move SP to FP (fp = sp)
+    ADD  r13, r15, r0    # fp_low = sp_low
+    ADD  r12, r14, r0    # fp_high = sp_high
 \end{lstlisting}
 
 % ============================================================
@@ -417,15 +707,23 @@ label: mnemonic operands  # comment
 \chapter{Example Programs}
 
 \section{Fibonacci Sequence}
-
 \begin{lstlisting}
-# Compute fib(n), n in r2, result in r6
+# Compute fib(n)
+# Input:  r2 (n)
+# Output: r6 (result)
 fib:
-    SLTI r1, r2, 2
-    BEZ  r1, fib_recurse
-    OR   r6, r2, r0
-    JALR r0, r1
-    # ... rest of function ...
+    # Base Case: if n < 2, return n
+    SLTI r7, r2, 2       # r7 = (n < 2) ? 1 : 0
+    ADDI r7, r7, -1      # r7 = (n < 2) ? 0 : -1
+    BEQ  r7, return_n    # If r7 == 0 (meaning n < 2), jump
+
+    # Recursive step would go here...
+    # (Omitted for brevity due to complexity of
+    # saving context in 4-bit mode)
+
+return_n:
+    ADD r6, r2, r0       # return n
+    RET                  # Pseudo for J r1 (if implemented)
 \end{lstlisting}
 
 % ============================================================
@@ -438,7 +736,7 @@ fib:
 \toprule
 \textbf{Version} & \textbf{Date} & \textbf{Changes} \\
 \midrule
-0.1 & 2025-01-15 & Initial draft \\
+0.1 & 2026-01-20 & Initial draft \\
 \bottomrule
 \end{tabular}
 \end{table}
