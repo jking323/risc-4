@@ -1,28 +1,32 @@
-name: Build ISA Specification
+name: Build Specification
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
+    paths:
+      - "**.tex"
+      - "Makefile"
+  pull_request:
+    branches: ["main"]
 
 jobs:
-  build:
+  build_latex:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Install LaTeX
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended
+      # This action sets up a container with TeX Live and runs 'make'
+      - name: Compile LaTeX
+        uses: xu-cheng/latex-action@v3
+        with:
+          # This tells the action to run your Makefile's 'release' target
+          args: release
 
-      - name: Build PDF
-        run: |
-          cd docs/isa-spec
-          make
-
-      - name: Upload PDF
+      # Upload the PDF as an artifact you can download from the Actions tab
+      - name: Upload Spec Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: risc4-isa-spec
-          path: docs/isa-spec/risc4-isa-spec.pdf
+          name: RISC-4-Spec
+          path: releases/*.pdf
+          if-no-files-found: error
