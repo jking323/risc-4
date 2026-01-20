@@ -1,0 +1,28 @@
+name: Build ISA Specification
+
+on:
+  push:
+    paths:
+      - "docs/isa-spec/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended
+
+      - name: Build PDF
+        run: |
+          cd docs/isa-spec
+          make
+
+      - name: Upload PDF
+        uses: actions/upload-artifact@v3
+        with:
+          name: risc4-isa-spec
+          path: docs/isa-spec/risc4-isa-spec.pdf
