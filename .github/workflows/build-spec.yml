@@ -2,8 +2,8 @@ name: Build ISA Specification
 
 on:
   push:
-    paths:
-      - "docs/isa-spec/**"
+    branches:
+      - main
 
 jobs:
   build:
