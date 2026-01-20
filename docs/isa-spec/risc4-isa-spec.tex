@@ -1,0 +1,447 @@
+\documentclass[11pt,letterpaper,twoside]{report}
+
+% ============================================================
+% PACKAGES
+% ============================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}           % Better fonts
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}          % Clickable TOC, references
+\usepackage{graphicx}          % Include figures
+\usepackage{listings}          % Code listings
+\usepackage{xcolor}            % Colors
+\usepackage{tabularx}          % Better tables
+\usepackage{booktabs}          % Professional tables
+\usepackage{fancyhdr}          % Headers/footers
+\usepackage{tikz}              % Diagrams
+\usepackage{bytefield}         % Instruction encoding diagrams
+\usepackage{amsmath}           % Math symbols
+\usepackage{float}             % Better figure placement
+
+% ============================================================
+% DOCUMENT METADATA
+% ============================================================
+\newcommand{\specversion}{1.0}
+\newcommand{\specdate}{January 20, 2025}
+\newcommand{\specstatus}{FROZEN}
+
+\title{
+    \Huge\textbf{RISC-4 ISA Specification}\\
+    \vspace{0.5cm}
+    \Large Version \specversion\\
+    \large \specstatus
+}
+\author{Jeremy King}
+\date{\specdate}
+
+% ============================================================
+% HYPERREF SETUP
+% ============================================================
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    pdftitle={RISC-4 ISA Specification v\specversion},
+    pdfauthor={Jeremy Williams},
+}
+
+% ============================================================
+% HEADER/FOOTER
+% ============================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\textit{RISC-4 ISA v\specversion}}
+\fancyhead[RE,LO]{\leftmark}
+\fancyfoot[C]{\thepage}
+
+% ============================================================
+% CODE LISTING STYLE (for assembly examples)
+% ============================================================
+\lstdefinelanguage{RISC4}{
+    morekeywords={ADD, SUB, AND, OR, XOR, SLT, SLL, SRL,
+                  ADDI, ANDI, ORI, SLTI,
+                  LW, SW,
+                  BEZ, BNZ, BLZ, BGZ,
+                  J, JAL, JALR,
+                  NOP, MOV, LI, NOT, NEG},
+    sensitive=false,
+    morecomment=[l]{\#},
+    morestring=[b]",
+}
+
+\lstset{
+    language=RISC4,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+}
+
+% ============================================================
+% CUSTOM COMMANDS
+% ============================================================
+% Instruction format box
+\newcommand{\instrfield}[2]{\bitbox{#1}{\texttt{#2}}}
+
+% Register name
+\newcommand{\reg}[1]{\texttt{r#1}}
+
+% Hex value
+\newcommand{\hex}[1]{\texttt{0x#1}}
+
+% Binary value
+\newcommand{\bin}[1]{\texttt{0b#1}}
+
+% ============================================================
+% DOCUMENT START
+% ============================================================
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+RISC-4 is a 4-bit load/store RISC architecture designed to demonstrate that RISC principles are independent of datapath width. This specification defines the instruction set architecture (ISA), programmer's model, memory organization, and calling conventions for the RISC-4 processor.
+
+This document represents an alternate history: ``What if the RISC revolution occurred during the 4-bit era of the early 1970s?''
+\end{abstract}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+% ============================================================
+% CHAPTER 1: INTRODUCTION
+% ============================================================
+\chapter{Introduction}
+
+\section{Overview}
+
+RISC-4 is a 4-bit Reduced Instruction Set Computer (RISC) architecture that combines the simplicity of early microprocessors like the Intel 4004 with modern RISC design principles. It serves as both an educational tool and a demonstration that RISC concepts apply at any scale.
+
+\section{Design Principles}
+
+The RISC-4 architecture adheres to the following principles:
+
+\begin{enumerate}
+    \item \textbf{Fixed-length instructions} -- All instructions are 16 bits (4 nibbles)
+    \item \textbf{Load/store architecture} -- Only load and store instructions access memory
+    \item \textbf{Simple instruction formats} -- Four orthogonal formats: R, I, J, M
+    \item \textbf{Regular encoding} -- Consistent field placement across formats
+    \item \textbf{Pipeline-friendly} -- Designed for 5-stage pipeline from inception
+    \item \textbf{Compiler-friendly} -- Simple, orthogonal instruction set
+\end{enumerate}
+
+\section{Key Specifications}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Datapath width & 4 bits \\
+Instruction width & 16 bits (fixed) \\
+Address space & 12 bits (4096 nibbles) \\
+General purpose registers & 16 × 4 bits \\
+Pipeline stages & 5 (IF, ID, EX, MEM, WB) \\
+Endianness & Little-endian \\
+\bottomrule
+\end{tabular}
+\caption{RISC-4 Architecture Parameters}
+\label{tab:params}
+\end{table}
+
+\section{Comparison to Historical Architectures}
+
+Table~\ref{tab:comparison} compares RISC-4 to its historical inspirations.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Feature} & \textbf{Intel 4004} & \textbf{RISC-4} & \textbf{RISC-I} \\
+\midrule
+Year (design) & 1971 & 2025 & 1982 \\
+Datapath & 4-bit & 4-bit & 32-bit \\
+Instruction width & 8-16 bits & 16 bits & 32 bits \\
+Architecture & Accumulator & Load/store & Load/store \\
+Registers & 16 × 4-bit & 16 × 4-bit & 138 × 32-bit \\
+Pipeline & None & 5-stage & 2-stage \\
+CPI (average) & 8.0 & ~1.2 & ~1.3 \\
+\bottomrule
+\end{tabular}
+\caption{Architectural Comparison}
+\label{tab:comparison}
+\end{table}
+
+% ============================================================
+% CHAPTER 2: PROGRAMMER'S MODEL
+% ============================================================
+\chapter{Programmer's Model}
+
+\section{Register File}
+
+RISC-4 provides 16 general-purpose registers, each 4 bits wide. While all registers are architecturally equivalent, software conventions assign specific roles to certain registers.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}clp{7cm}@{}}
+\toprule
+\textbf{Register} & \textbf{Name} & \textbf{Usage (Convention)} \\
+\midrule
+\reg{0}  & zero & Hardwired to zero \\
+\reg{1}  & ra   & Return address \\
+\reg{2}  & a0   & Argument 0 / return value \\
+\reg{3}  & a1   & Argument 1 \\
+\reg{4}  & a2   & Argument 2 \\
+\reg{5}  & a3   & Argument 3 \\
+\reg{6}  & v0   & Return value \\
+\reg{7}  & t0   & Temporary (caller-saved) \\
+\reg{8}  & t1   & Temporary (caller-saved) \\
+\reg{9}  & t2   & Temporary (caller-saved) \\
+\reg{10} & s0   & Saved (callee-saved) \\
+\reg{11} & s1   & Saved (callee-saved) \\
+\reg{12} & s2   & Saved (callee-saved) \\
+\reg{13} & s3   & Saved (callee-saved) \\
+\reg{14} & sp   & Stack pointer \\
+\reg{15} & fp   & Frame pointer \\
+\bottomrule
+\end{tabular}
+\caption{Register File Organization}
+\label{tab:registers}
+\end{table}
+
+\subsection{Register \reg{0} (zero)}
+
+Register \reg{0} is hardwired to the constant value zero:
+\begin{itemize}
+    \item Reads always return \hex{0}
+    \item Writes are silently discarded
+    \item Useful for: comparisons, clearing registers, no-op destinations
+\end{itemize}
+
+\subsection{Value Ranges}
+
+Each register holds values in the range:
+\begin{itemize}
+    \item Unsigned: 0 to 15
+    \item Signed (two's complement): -8 to +7
+\end{itemize}
+
+% ============================================================
+% CHAPTER 3: INSTRUCTION FORMATS
+% ============================================================
+\chapter{Instruction Formats}
+
+All RISC-4 instructions are exactly 16 bits wide, divided into four formats based on instruction type.
+
+\section{Format Summary}
+
+\subsection{R-Type: Register Operations}
+
+Used for arithmetic, logic, and shift operations with three register operands.
+
+\begin{figure}[H]
+\centering
+\begin{bytefield}[bitwidth=1.5em]{16}
+    \bitheader{0,4,8,12,15} \\
+    \bitbox{4}{op} &
+    \bitbox{4}{rd} &
+    \bitbox{4}{rs} &
+    \bitbox{4}{rt}
+\end{bytefield}
+\caption{R-Type Instruction Format}
+\label{fig:rtype}
+\end{figure}
+
+\subsection{I-Type: Immediate Operations}
+
+Used for immediate arithmetic, logic, and branches.
+
+\begin{figure}[H]
+\centering
+\begin{bytefield}[bitwidth=1.5em]{16}
+    \bitheader{0,8,12,15} \\
+    \bitbox{4}{op} &
+    \bitbox{4}{rd} &
+    \bitbox{8}{imm8}
+\end{bytefield}
+\caption{I-Type Instruction Format}
+\label{fig:itype}
+\end{figure}
+
+\subsection{J-Type: Jump Operations}
+
+Used for unconditional jumps with large displacement.
+
+\begin{figure}[H]
+\centering
+\begin{bytefield}[bitwidth=1.5em]{16}
+    \bitheader{0,12,15} \\
+    \bitbox{4}{op} &
+    \bitbox{12}{addr12}
+\end{bytefield}
+\caption{J-Type Instruction Format}
+\label{fig:jtype}
+\end{figure}
+
+\subsection{M-Type: Memory Operations}
+
+Used for load and store instructions with base+offset addressing.
+
+\begin{figure}[H]
+\centering
+\begin{bytefield}[bitwidth=1.5em]{16}
+    \bitheader{0,4,8,12,15} \\
+    \bitbox{4}{op} &
+    \bitbox{4}{rd} &
+    \bitbox{4}{base} &
+    \bitbox{4}{offset}
+\end{bytefield}
+\caption{M-Type Instruction Format}
+\label{fig:mtype}
+\end{figure}
+
+% ============================================================
+% CHAPTER 4: INSTRUCTION SET
+% ============================================================
+\chapter{Instruction Set Reference}
+
+\section{Instruction Summary}
+
+Table~\ref{tab:opcodes} lists all RISC-4 instructions.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}clcl@{}}
+\toprule
+\textbf{Opcode} & \textbf{Mnemonic} & \textbf{Format} & \textbf{Description} \\
+\midrule
+\hex{0} & ADD  & R & Add \\
+\hex{1} & SUB  & R & Subtract \\
+\hex{2} & AND  & R & Bitwise AND \\
+\hex{3} & OR   & R & Bitwise OR \\
+\hex{4} & XOR  & R & Bitwise XOR \\
+\hex{5} & SLT  & R & Set less than \\
+\hex{6} & SLL  & R & Shift left logical \\
+\hex{7} & SRL  & R & Shift right logical \\
+\hex{8} & ADDI & I & Add immediate \\
+\hex{9} & ANDI & I & AND immediate \\
+\hex{A} & ORI  & I & OR immediate \\
+\hex{B} & SLTI & I & Set less than immediate \\
+\hex{C} & LW   & M & Load word \\
+\hex{D} & SW   & M & Store word \\
+\hex{E} & Bxx  & I & Branch (4 conditions) \\
+\hex{F} & Jxx  & J & Jump (3 variants) \\
+\bottomrule
+\end{tabular}
+\caption{RISC-4 Opcode Map}
+\label{tab:opcodes}
+\end{table}
+
+\section{Arithmetic Instructions}
+
+\subsection{ADD -- Add}
+
+\begin{lstlisting}
+ADD rd, rs, rt
+\end{lstlisting}
+
+\begin{table}[h]
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Field} & \textbf{Value} \\
+\midrule
+Opcode & \hex{0} \\
+Format & R-type \\
+Operation & \texttt{rd <- rs + rt} \\
+Flags & Carry \\
+Cycles & 4 (single-cycle impl: 1) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Description:} Adds the contents of registers \texttt{rs} and \texttt{rt}, storing the 4-bit result in \texttt{rd}. The carry-out is stored in the carry flag.
+
+\textbf{Example:}
+\begin{lstlisting}
+ADD r3, r1, r2    # r3 = r1 + r2
+# If r1 = 7, r2 = 9: r3 = 0, carry = 1
+\end{lstlisting}
+
+% ... Continue with all instructions ...
+
+% ============================================================
+% CHAPTER 5: CALLING CONVENTION
+% ============================================================
+\chapter{Calling Convention}
+
+\section{Function Prologue}
+
+A typical function prologue saves the return address and frame pointer:
+
+\begin{lstlisting}
+function:
+    ADDI r14, r14, -4    # Allocate 4 nibbles
+    SW   r1,  3(r14)     # Save return address
+    SW   r15, 2(r14)     # Save frame pointer
+    ADDI r15, r14, 4     # New frame pointer
+    # ... function body ...
+\end{lstlisting}
+
+% ============================================================
+% APPENDICES
+% ============================================================
+\appendix
+
+\chapter{Assembly Language Syntax}
+
+\section{Instruction Format}
+\begin{lstlisting}
+label: mnemonic operands  # comment
+\end{lstlisting}
+
+\chapter{Example Programs}
+
+\section{Fibonacci Sequence}
+
+\begin{lstlisting}
+# Compute fib(n), n in r2, result in r6
+fib:
+    SLTI r1, r2, 2
+    BEZ  r1, fib_recurse
+    OR   r6, r2, r0
+    JALR r0, r1
+    # ... rest of function ...
+\end{lstlisting}
+
+% ============================================================
+% REVISION HISTORY
+% ============================================================
+\chapter{Revision History}
+
+\begin{table}[h]
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Version} & \textbf{Date} & \textbf{Changes} \\
+\midrule
+1.0 & 2025-01-20 & ISA frozen for implementation \\
+0.1 & 2025-01-15 & Initial draft \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
