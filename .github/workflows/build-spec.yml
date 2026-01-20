@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Install LaTeX
         run: |
@@ -22,7 +22,7 @@ jobs:
           make
 
       - name: Upload PDF
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: risc4-isa-spec
           path: docs/isa-spec/risc4-isa-spec.pdf
