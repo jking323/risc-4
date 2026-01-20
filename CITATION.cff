@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this ISA, please cite it as below."
+authors:
+  - family-names: King
+    given-names: Jeremy
+title: "RISC-4: A 4-bit RISC Architecture"
+version: 1.0.0
+date-released: 2026-01-20
+url: "https://github.com/jking323/risc-4"
+license: CC-BY-4.0
