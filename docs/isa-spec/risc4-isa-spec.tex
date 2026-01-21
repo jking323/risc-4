@@ -47,7 +47,6 @@
 % ============================================================
 % SPACING OPTIMIZATIONS
 % ============================================================
-\usepackage{titlesec}
 \usepackage{enumitem}
 
 % Tighter section spacing
@@ -314,7 +313,7 @@ Each register holds values in the range:
     \item Signed (two's complement): -8 to +7
 \end{itemize}
 
-\section{Effective Addressing \& Register Pairs}
+\section{Effective Addressing \\& Register Pairs}
 
 To address memory beyond the 4-bit limit of a single register, RISC-4 utilizes \textbf{Register Pairing}. When a register is used as a base address for memory operations, the processor implicitly accesses the specified register and its neighbor to form an 8-bit address.
 
@@ -780,7 +779,7 @@ Table~\ref{tab:opcodes} lists all RISC-4 instructions.
 ADD rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{0}{R-type}{0000 dddd ssss tttt}{rd \leftarrow rs + rt}{C, Z}{4 (single-cycle impl: 1)}
+\instructionDef{0}{R-type}{0000 dddd ssss tttt}{$rd \leftarrow rs + rt$}{C, Z}{4 (single-cycle impl: 1)}
 
 \noindent \textbf{Description:} Adds the contents of registers \texttt{rs} and \texttt{rt}, storing the 4-bit result in \texttt{rd}. The carry-out is stored in the \textbf{Carry} flag. If result is zero then the \textbf{Zero} flag is set.
 
@@ -802,7 +801,7 @@ ADD r1, r2, r3      # r1 = r2 + r3
 SUB rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{1}{R-type}{0001 dddd ssss tttt}{rd \leftarrow rs - rt}{C, Z}{4 (single-cycle impl: 1)}
+\instructionDef{1}{R-type}{0001 dddd ssss tttt}{$rd \leftarrow rs - rt$}{C, Z}{4 (single-cycle impl: 1)}
 
 
 \noindent \textbf{Description:} Subtracts the contents of registers \texttt{rs} and \texttt{rt}, storing the 4-bit result in \texttt{rd}. The carry-out is stored in the \textbf{Carry} flag. If the result is Zero the \textbf{Zero} Flag is set
@@ -828,7 +827,7 @@ SUB r4, r5, r6      # r4 = r5 - r6
 AND rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{2}{R-type}{0010 dddd ssss tttt}{rd \leftarrow rs & rt}{Carry, Zero}{4 (single-cycle impl: 1)}
+\instructionDef{2}{R-type}{0010 dddd ssss tttt}{$rd \leftarrow rs & rt$}{Carry, Zero}{4 (single-cycle impl: 1)}
 
 \noindent \textbf{Description:} Bitwise AND compare operation on registers \textbf{rs} and \textbf{rt}, results stored in \textbf{rd}. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
@@ -856,7 +855,7 @@ BEQ  is_zero        # Branch if Z = 1
 OR rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{3}{R-type}{0011 dddd ssss tttt}{rd \leftarrow rs \mid rt}{--}{4 (single-cycle impl: 1)}
+\instructionDef{3}{R-type}{0011 dddd ssss tttt}{$rd \leftarrow rs \mid rt$}{--}{4 (single-cycle impl: 1)}
 
 \noindent \textbf{Description:} Bitwise OR compare operation on registers \textbf{rs} and \textbf{rt}, results store in \textbf{rd}. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
@@ -881,7 +880,7 @@ OR r1, r1, r1       # Explicit way to clear C, update Z
 XOR rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{4}{R-type}{0100 dddd ssss tttt}{rd \leftarrow rs \veebar rt}{--}{4 (single-cycle impl: 1)}
+\instructionDef{4}{R-type}{0100 dddd ssss tttt}{$rd \leftarrow rs \veebar rt$}{--}{4 (single-cycle impl: 1)}
 
 \noindent \textbf{Description:} Bitwise eXclusive OR compare operation on registers \textbf{rs} and \textbf{rt}, results store in \textbf{rd}. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
@@ -908,7 +907,7 @@ XOR r2, r3, r4      # r2 = r3 ^ r4
 \begin{lstlisting}
 SLT rd, rs, rt
 \end{lstlisting}
-\instructionDef{5}{R-type}{0101 dddd ssss tttt}{rd \leftarrow (rs < rt) ? 1 : 0 (signed comparison)}{--}{4 (single-cycle impl: 1)}
+\instructionDef{5}{R-type}{0101 dddd ssss tttt}{$rd \leftarrow (rs < rt$) ? 1 : 0 (signed comparison)}{--}{4 (single-cycle impl: 1)}
 
 \noindent \textbf{Description:} Set Less Than performs a signed comparison of \textbf{rs} and \textbf{rt} if \textbf{rs} is less than \textbf{rt} then \textbf{rd} is set to 1, if not \textbf{rd} is set to 0. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
@@ -939,7 +938,7 @@ BEQ greater_equal   # Branch if Z = 1 (comparison false)
 SHF rd, rs, imm4
 \end{lstlisting}
 
-\instructionDef{6}{I-type}{0110 dddd ssss iiii}{rd \leftarrow shift(rs, imm4)}{ C, Z}{4}
+\instructionDef{6}{I-type}{0110 dddd ssss iiii}{$rd \leftarrow shift(rs, imm4)$}{ C, Z}{4}
 
 \textbf{Description:} Shifts the value in rs by the amount and direction specified in imm4.
 
@@ -1009,7 +1008,7 @@ These instructions share Opcode 7 and use a 2-operand destructive format (\textt
 \begin{lstlisting}
 ADC rd, rs
 \end{lstlisting}
-\instructionDef{7}{R-type}{0111 dddd ssss 0000}{rd \leftarrow rd + rs + Carry}{Carry}{4}
+\instructionDef{7}{R-type}{0111 dddd ssss 0000}{$rd \leftarrow rd + rs + Carry$}{Carry}{4}
 
 \noindent \textbf{Description:} Adds \texttt{rs} and the current \textbf{Carry} flag to \texttt{rd} \textbf{Zero} flag set if result == \textbf{0}. Used for multi-nibble addition.
 
@@ -1031,7 +1030,7 @@ ADC r0, r2, r4      # High nibble: r0 = r2 + r4 + C
 \begin{lstlisting}
 SBB rd, rs
 \end{lstlisting}
-\instructionDef{7}{R-type}{0111 dddd ssss 0001}{rd \leftarrow rd - rs - Carry}{Carry}{4}
+\instructionDef{7}{R-type}{0111 dddd ssss 0001}{$rd \leftarrow rd - rs - Carry$}{Carry}{4}
 
 \noindent \textbf{Description:} Subtracts \texttt{rs} and the Carry flag (borrow) from \texttt{rd} \textbf{Zero} flag set if result == \textbf{0}. Used for multi-nibble subtraction.
 
@@ -1053,7 +1052,7 @@ SBB r0, r2, r4      # High nibble: r0 = r2 - r4 - C
 \begin{lstlisting}
 NEG rd, rs
 \end{lstlisting}
-\instructionDef{7}{R-type}{0111 dddd ssss 0010}{rd \leftarrow 0 - rs}{ C, Z}{4}
+\instructionDef{7}{R-type}{0111 dddd ssss 0010}{$rd \leftarrow 0 - rs$}{ C, Z}{4}
 
 \noindent \textbf{Description:} Computes the two's complement of \texttt{rs} and stores it in \texttt{rd}. (Pseudo-equivalent to \texttt{SUB rd, r0, rs}). \textbf{Carry} flag set to 0 if operand was zero else \textbf{Carry} set to 1. \textbf{Zero} flag set if result == \textbf{0}
 
@@ -1079,7 +1078,7 @@ NEG r1, r2          # r1 = -r2 (two's complement)
 \begin{lstlisting}
 ADDI rd,rs, imm4
 \end{lstlisting}
-\instructionDef{8}{I-type}{1000 dddd ssss iiii}{rd \leftarrow rs + sign_extend(imm4)}{ C, Z}{4 (single-cycle impl: 1)}
+\instructionDef{8}{I-type}{1000 dddd ssss iiii}{$rd \leftarrow rs + sign_extend(imm4)$}{ C, Z}{4 (single-cycle impl: 1)}
 
 \noindent \textbf{Description:} ADD Immediate adds the sign-extended 4-bit immediate \texttt{imm4} to the contents of register \texttt{rs}, storing the result in \texttt{rd}. This allows for incrementing and decrementing (using negative immediates).
 
@@ -1110,7 +1109,7 @@ Since the immediate field is 4 bits wide, it can represent values from -8 to +7.
 \begin{lstlisting}
 ANDI rd, rs, imm4
 \end{lstlisting}
-\instructionDef{9}{I-type}{1001 dddd ssss iiii}{rd \leftarrow rs \ \& \ zero\_extend(imm4)}{ C, Z}{4}
+\instructionDef{9}{I-type}{1001 dddd ssss iiii}{$rd \leftarrow rs \ \& \ zero\_extend(imm4)$}{ C, Z}{4}
 
 \noindent \textbf{Description:} Performs a bitwise AND between register \texttt{rs} and the 4-bit immediate, storing the result in \texttt{rd}.
 \textbf{Note:} Since the register is 4 bits, the mask \texttt{imm4} covers all bits. \textbf{Carry} flag is cleared, \textbf{Zero} flag is set if result == \textbf{0}
@@ -1136,7 +1135,7 @@ BNE  negative       # Branch if Z = 0 (bit was set)
 \begin{lstlisting}
 ORI rd, rs, imm4
 \end{lstlisting}
-\instructionDef{A}{I-type}{1010 dddd ssss iiii}{rd \leftarrow rs \ | \ zero\_extend(imm4)}{ C, Z}{4}
+\instructionDef{A}{I-type}{1010 dddd ssss iiii}{$rd \leftarrow rs \ | \ zero\_extend(imm4)$}{ C, Z}{4}
 
 \noindent \textbf{Description:} Performs a bitwise OR between register \texttt{rs} and the 4-bit immediate, storing the result in \texttt{rd}. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
@@ -1159,7 +1158,7 @@ ORI r2, r3, 0x8     # Set bit 3 (sign bit)
 \begin{lstlisting}
 SLTI rd, rs, imm4
 \end{lstlisting}
-\instructionDef{B}{I-type}{1011 dddd ssss iiii}{rd \leftarrow (rs < sign\_extend(imm4)) ? 1 : 0}{ C, Z}{4}
+\instructionDef{B}{I-type}{1011 dddd ssss iiii}{$rd \leftarrow (rs < sign\_extend(imm4)$) ? 1 : 0}{ C, Z}{4}
 
 \noindent \textbf{Description:} Compares \texttt{rs} to the signed 4-bit immediate. If \texttt{rs} is strictly smaller, \texttt{rd} is set to 1, otherwise 0. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
@@ -1183,7 +1182,7 @@ SLTI r1, r2, 5      # r1 = (r2 < 5) ? 1 : 0
 \begin{lstlisting}
 LW rd, offset(base)
 \end{lstlisting}
-\instructionDef{C}{M-type}{1100 dddd bbbb oooo}{rd \leftarrow mem[reg\_pair(base) + sign\_extend(offset)]}{--}{5}
+\instructionDef{C}{M-type}{1100 dddd bbbb oooo}{$rd \leftarrow mem[reg\_pair(base) + sign\_extend(offset)]$}{--}{5}
 
 \noindent \textbf{Description:} Loads a 4-bit nibble from data memory into \texttt{rd}.
 \textbf{Addressing:} The effective address is calculated by taking the 8-bit value in the register pair specified by \texttt{base} (must be even) and adding the sign-extended 4-bit \texttt{offset}.
@@ -1200,7 +1199,7 @@ LW r1, 4(r14)      # Address = 0x80 + 4 = 0x84
 \begin{lstlisting}
 SW rs, offset(base)
 \end{lstlisting}
-\instructionDef{D}{M-type}{1101 ssss bbbb oooo}{mem[reg\_pair(base) + sign\_extend(offset)] \leftarrow rs}{--}{5}
+\instructionDef{D}{M-type}{1101 ssss bbbb oooo}${mem[reg\_pair(base) + sign\_extend(offset)] \leftarrow rs$}{--}{5}
 
 \noindent \textbf{Description:} Stores the 4-bit value from \texttt{rs} into data memory.
 \textbf{Note:} \texttt{base} must be an even-numbered register representing a pair.
