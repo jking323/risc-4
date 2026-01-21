@@ -1,15 +1,14 @@
 # Makefile for RISC-4 ISA Specification
-
 MAIN = risc4-isa-spec
 PDF = $(MAIN).pdf
 TEX = $(MAIN).tex
 
 # CI FLAGS:
 # -interaction=nonstopmode: Don't pause for user input on errors
-# -halt-on-error: Exit with code 1 immediately if an error occurs (fails the Action)
+# -halt-on-error: Exit with code 1 immediately if an error occurs
 LATEX_FLAGS = -interaction=nonstopmode -halt-on-error
 
-.PHONY: all clean release
+.PHONY: all clean release ci
 
 all: $(PDF)
 
@@ -24,6 +23,10 @@ release: $(PDF)
 	cp $(PDF) releases/$(MAIN)-v$(VERSION).pdf
 	@echo "Created: releases/$(MAIN)-v$(VERSION).pdf"
 
+# CI target: builds and creates release in one step
+ci: release
+	@echo "CI build complete"
+
 clean:
-	rm -f *.aux *.log *.out *.toc *.pdf *.synctex.gz *.fls *.fdb_latexmk
+	rm -f *.aux *.log *.out *.toc *.pdf *.synctex.gz *.fls *.fdb_latexmk *.lof *.lot
 	rm -rf releases
