@@ -18,13 +18,64 @@
 \usepackage{bytefield}         % Instruction encoding diagrams
 \usepackage{amsmath}           % Math symbols
 \usepackage{float}             % Better figure placement
+% ============================================================
+% DISCOURAGE AWKWARD PAGE BREAKS
+% ============================================================
+
+% Penalize page breaks after section/subsection headings
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{12pt plus 4pt minus 2pt}{6pt plus 2pt minus 2pt}[0pt]
+\titlespacing*{\subsection}{0pt}{10pt plus 3pt minus 2pt}{4pt plus 2pt minus 2pt}[0pt]
+\titlespacing*{\subsubsection}{0pt}{8pt plus 2pt minus 2pt}{3pt plus 1pt minus 1pt}[0pt]
+
+% Penalties: higher number = more reluctance to break
+\clubpenalty=10000        % Prevent orphan lines (first line of paragraph alone at bottom)
+\widowpenalty=10000       % Prevent widow lines (last line of paragraph alone at top)
+\displaywidowpenalty=10000 % Same for display math
+
+% Discourage breaking after section headings
+\usepackage{etoolbox}
+\preto\subsection{\filbreak}  % "Break here IF you must, but try not to"
+
+% Keep list items together
+\usepackage{enumitem}
+\setlist{nosep, topsep=3pt, partopsep=0pt, parsep=0pt, itemsep=2pt}
+
+% Prefer breaking at section boundaries, not within
+\renewcommand{\bottomfraction}{0.3}  % Less space for floats at bottom
+\renewcommand{\topfraction}{0.7}     % More space at top
+% ============================================================
+% SPACING OPTIMIZATIONS
+% ============================================================
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+% Tighter section spacing
+\titlespacing*{\section}{0pt}{12pt plus 4pt minus 2pt}{6pt plus 2pt minus 2pt}
+\titlespacing*{\subsection}{0pt}{10pt plus 3pt minus 2pt}{4pt plus 2pt minus 2pt}
+\titlespacing*{\subsubsection}{0pt}{8pt plus 2pt minus 2pt}{3pt plus 1pt minus 1pt}
+
+% Tighter list spacing
+\setlist{nosep, topsep=3pt, partopsep=0pt, parsep=0pt, itemsep=2pt}
+
+% Reduce paragraph spacing
+\setlength{\parskip}{3pt plus 1pt minus 1pt}
+
+% Adjust float parameters
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.70}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.66}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
 
 % ============================================================
 % DOCUMENT METADATA
 % ============================================================
-\newcommand{\specversion}{0.1}
-\newcommand{\specdate}{January 20, 2026}
-\newcommand{\specstatus}{Solidifying}
+\newcommand{\specversion}{0.1.2}
+\newcommand{\specdate}{January 21, 2026}
+\newcommand{\specstatus}{Pre-Silicon}
 
 \title{
     \Huge\textbf{RISC-4 ISA Specification}\\
@@ -85,6 +136,8 @@
     breaklines=true,
     frame=single,
     backgroundcolor=\color{gray!10},
+    aboveskip=6pt,  
+    belowskip=6pt, 
 }
 
 % ============================================================
@@ -104,7 +157,7 @@
 
 % Preamble Definition
 \newcommand{\instructionDef}[6]{
-    \begin{table}[h]
+    \begin{table}[H]
     \centering          % Centers the table
     \small              % Keeps the font compact
     \begin{tabular}{@{}ll@{}}
@@ -122,10 +175,12 @@
     \end{table}
 }
 
+
 % ============================================================
 % DOCUMENT START
 % ============================================================
 \begin{document}
+\raggedbottom
 
 \maketitle
 
@@ -163,7 +218,7 @@ The RISC-4 architecture adheres to the following principles:
 
 \section{Key Specifications}
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \begin{tabular}{@{}ll@{}}
 \toprule
@@ -185,7 +240,7 @@ Endianness & Little-endian \\
 
 Table~\ref{tab:comparison} compares RISC-4 to its historical inspirations.
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \small
 \begin{tabular}{@{}lcccc@{}}
@@ -206,7 +261,7 @@ CPI (average) & 8.0 & ~1.2 & ~1.3 \\
 \end{table}
 
 % ============================================================
-% CHAPTER 2: PROGRAMMER'S MODEL
+% CHAPTER : PROGRAMMER'S MODEL
 % ============================================================
 \chapter{Programmer's Model}
 
@@ -214,7 +269,7 @@ CPI (average) & 8.0 & ~1.2 & ~1.3 \\
 
 RISC-4 provides 16 general-purpose registers, each 4 bits wide. While all registers are architecturally equivalent, software conventions assign specific roles to certain registers.
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \begin{tabular}{@{}clp{7cm}@{}}
 \toprule
@@ -263,7 +318,7 @@ Each register holds values in the range:
 
 To address memory beyond the 4-bit limit of a single register, RISC-4 utilizes \textbf{Register Pairing}. When a register is used as a base address for memory operations, the processor implicitly accesses the specified register and its neighbor to form an 8-bit address.
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \begin{tabular}{@{}ccc@{}}
 \toprule
@@ -362,7 +417,324 @@ Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across t
 \end{itemize}
 
 % ============================================================
-% CHAPTER 4: INSTRUCTION SET
+% Chapter : Flags
+% ============================================================
+
+\chapter{Status Flags}
+
+\section{Quick Reference: Flag Behavior}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|l|c|c|l|}
+\hline
+\textbf{Instruction} & \textbf{C} & \textbf{Z} & \textbf{Notes} \\
+\hline
+\multicolumn{4}{|c|}{\textbf{Arithmetic}} \\
+\hline
+ADD, ADDI & Set & Set & C = carry out, Z = result is zero \\
+SUB & Set & Set & C = borrow occurred \\
+ADC & Set & Set & Includes previous carry \\
+SBB & Set & Set & Includes previous borrow \\
+NEG & Set & Set & C = 0 only when negating zero \\
+\hline
+\multicolumn{4}{|c|}{\textbf{Logical}} \\
+\hline
+AND, ANDI & 0 & Set & Logical AND, carry cleared \\
+OR, ORI & 0 & Set & Logical OR, carry cleared \\
+XOR & 0 & Set & Logical XOR, carry cleared \\
+\hline
+\multicolumn{4}{|c|}{\textbf{Comparison}} \\
+\hline
+SLT, SLTI & 0 & Set & Z = comparison is false \\
+\hline
+\multicolumn{4}{|c|}{\textbf{Shift}} \\
+\hline
+SHF & Set & Set & C = last bit shifted out \\
+\hline
+\multicolumn{4}{|c|}{\textbf{Memory \& Control}} \\
+\hline
+LW, SW & — & — & Flags preserved (not modified) \\
+BEQ, BNE, BCS, BCC & — & — & Flags read but not modified \\
+J & — & — & Flags preserved \\
+\hline
+\end{tabular}
+\caption{Flag Update Summary}
+\end{table}
+
+\textbf{Legend:}
+\begin{itemize}
+    \item \textbf{Set}: Flag updated based on result
+    \item \textbf{0}: Flag cleared (forced to 0)
+    \item \textbf{—}: Flag preserved (unchanged)
+\end{itemize}
+
+\section{Overview}
+
+RISC-4 maintains a 2-bit status flag register that captures the results of arithmetic and logical operations. While pure academic RISC designs avoid condition codes, RISC-4 follows the commercial RISC tradition (ARM, SPARC, PowerPC) of using flags for efficient comparison and branching.
+
+This design choice reflects the historical context: in the 4-bit microprocessor era of the early 1970s, all architectures used condition codes. RISC-4 demonstrates that RISC principles are compatible with flag-based conditional execution.
+
+\section{Flag Register}
+
+The status register contains two flags:
+
+\begin{center}
+\begin{bytefield}[bitwidth=1.5em]{4}
+    \bitheader{0-3} \\
+    \bitbox{1}{—} & \bitbox{1}{—} & \bitbox{1}{Z} & \bitbox{1}{C}
+\end{bytefield}
+\end{center}
+
+\subsection{Carry Flag (C) - Bit 0}
+
+The Carry flag indicates unsigned arithmetic overflow or underflow.
+
+\textbf{Set Conditions:}
+\begin{itemize}
+    \item \textbf{Addition (ADD, ADDI, ADC):} Set if result overflows 4 bits (carry out of bit 3)
+    \begin{itemize}
+        \item Example: \texttt{0xF + 0x1 = 0x10} → Result \texttt{0x0}, C=1
+    \end{itemize}
+    \item \textbf{Subtraction (SUB, SBB):} Set if borrow occurs (inverted borrow)
+    \begin{itemize}
+        \item Example: \texttt{0x3 - 0x5 = -2} → Result \texttt{0xE}, C=1
+    \end{itemize}
+    \item \textbf{Shift (SHF):} Contains the last bit shifted out
+    \begin{itemize}
+        \item Shift left: C ← original bit 3
+        \item Shift right: C ← original bit 0
+    \end{itemize}
+\end{itemize}
+
+\textbf{Used By:}
+\begin{itemize}
+    \item \textbf{BCS} (Branch if Carry Set): Branch if C=1
+    \item \textbf{BCC} (Branch if Carry Clear): Branch if C=0
+    \item \textbf{ADC} (Add with Carry): Adds previous carry into result
+    \item \textbf{SBB} (Subtract with Borrow): Subtracts previous borrow from result
+\end{itemize}
+
+\textbf{Multi-Precision Arithmetic:}
+
+The Carry flag enables arithmetic on values larger than 4 bits:
+
+\begin{lstlisting}[caption={8-bit Addition: r0:r1 = r2:r3 + r4:r5}]
+ADD r1, r3, r5      # Add low nibbles: r1 = r3 + r5, sets C
+ADC r0, r2, r4      # Add high nibbles with carry: r0 = r2 + r4 + C
+\end{lstlisting}
+
+\subsection{Zero Flag (Z) - Bit 1}
+
+The Zero flag indicates whether the result of an operation is zero.
+
+\textbf{Set Conditions:}
+\begin{itemize}
+    \item Set (Z=1) if result equals \texttt{0x0}
+    \item Clear (Z=0) if result is non-zero
+\end{itemize}
+
+\textbf{Updated By:}
+\begin{itemize}
+    \item All arithmetic operations (ADD, SUB, ADDI, ADC, SBB, NEG)
+    \item All logical operations (AND, OR, XOR, ANDI, ORI)
+    \item Comparison (SLT, SLTI)
+    \item Shift (SHF)
+\end{itemize}
+
+\textbf{Used By:}
+\begin{itemize}
+    \item \textbf{BEQ} (Branch if Equal): Branch if Z=1
+    \item \textbf{BNE} (Branch if Not Equal): Branch if Z=0
+\end{itemize}
+
+\textbf{Comparison Pattern:}
+
+Testing equality requires a subtraction followed by a zero test:
+
+\begin{lstlisting}[caption={If (r1 == r2) goto equal}]
+SUB r3, r1, r2      # r3 = r1 - r2, sets Z if equal
+BEQ equal           # Branch if Z=1 (difference was zero)
+\end{lstlisting}
+
+\section{Flag Update Rules}
+
+\subsection{Instructions That Set Flags}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|l|}
+\hline
+\textbf{Instruction} & \textbf{C} & \textbf{Z} & \textbf{Notes} \\
+\hline
+ADD, ADDI & Yes & Yes & C = carry out, Z = result is zero \\
+SUB & Yes & Yes & C = borrow, Z = result is zero \\
+AND, ANDI & No & Yes & Logical ops don't affect carry \\
+OR, ORI & No & Yes & \\
+XOR & No & Yes & \\
+SLT, SLTI & No & Yes & Z reflects comparison result \\
+SHF & Yes & Yes & C = last bit shifted out \\
+ADC, SBB & Yes & Yes & Extended arithmetic \\
+NEG & Yes & Yes & C set unless negating zero \\
+\hline
+\end{tabular}
+\caption{Flag Update Behavior}
+\end{table}
+
+\subsection{Instructions That Preserve Flags}
+
+The following instructions \textbf{do not modify} flags:
+
+\begin{itemize}
+    \item \textbf{Memory operations:} LW, SW
+    \item \textbf{Control flow:} BEQ, BNE, BCS, BCC, J
+    \begin{itemize}
+        \item Note: Branches \emph{read} flags but do not modify them
+    \end{itemize}
+\end{itemize}
+
+\textbf{Critical Implication:} Load/store operations between an ALU instruction and a branch will preserve flags:
+
+\begin{lstlisting}[caption={Flags preserved across load}]
+SUB r3, r1, r2      # Sets Z flag
+LW  r4, 0(r14)      # Does NOT change Z flag
+BEQ equal           # Still uses Z from SUB
+\end{lstlisting}
+
+\section{Comparison Operations}
+
+\subsection{Equality (==, !=)}
+
+\begin{lstlisting}[caption={Test if r1 == r2}]
+SUB r3, r1, r2      # r3 = r1 - r2
+BEQ equal           # Branch if Z=1 (r1 == r2)
+BNE not_equal       # Branch if Z=0 (r1 != r2)
+\end{lstlisting}
+
+\subsection{Unsigned Comparison (<, >=)}
+
+For unsigned values (0 to 15):
+
+\begin{lstlisting}[caption={Test if r1 < r2 (unsigned)}]
+SUB r3, r1, r2      # r3 = r1 - r2
+BCS less            # Branch if C=1 (borrow occurred, r1 < r2)
+BCC greater_equal   # Branch if C=0 (no borrow, r1 >= r2)
+\end{lstlisting}
+
+\subsection{Signed Comparison (<, >=)}
+
+For signed values (-8 to +7), use SLT:
+
+\begin{lstlisting}[caption={Test if r1 < r2 (signed)}]
+SLT r3, r1, r2      # r3 = (r1 < r2) ? 1 : 0
+BNE less            # Branch if r3 != 0 (comparison true)
+BEQ greater_equal   # Branch if r3 == 0 (comparison false)
+\end{lstlisting}
+
+\textbf{Rationale:} Signed comparison requires checking both the sign bit and magnitude. The SLT instruction implements the full signed comparison logic, outputting a boolean result that can be tested with the zero flag.
+
+\section{Pipeline Considerations}
+
+\subsection{Flag Hazards}
+
+Since flags are updated by instructions in the Execute (EX) stage but may be needed by branches in the Instruction Decode (ID) stage, a \textbf{flag hazard} can occur:
+
+\begin{lstlisting}
+Cycle:  1    2    3    4    5
+SUB     IF   ID   EX   MEM  WB   <- Sets Z flag in cycle 3
+BEQ          IF   ID   EX   MEM  <- Needs Z flag in cycle 3
+\end{lstlisting}
+
+\textbf{Problem:} BEQ in ID stage (cycle 3) needs the Z flag, but SUB only produces it in EX stage (also cycle 3). The flag value must be \emph{forwarded} from the EX stage output to the ID stage input in the same cycle.
+
+\subsection{Solutions}
+
+\subsubsection{Flag Forwarding (Performance)}
+
+Forward flag values directly from EX stage to branch evaluation logic in ID stage:
+
+\begin{itemize}
+    \item \textbf{Hardware:} 2-bit bypass path (C and Z flags)
+    \item \textbf{Delay:} 0 cycles (resolved within cycle)
+    \item \textbf{Complexity:} Low (simpler than register forwarding)
+\end{itemize}
+
+\subsubsection{Pipeline Stall (Simplicity)}
+
+Detect flag hazard and insert 1-cycle bubble:
+
+\begin{itemize}
+    \item \textbf{Detection:} If (previous instruction sets flags) AND (current instruction is branch)
+    \item \textbf{Action:} Stall IF and ID stages for 1 cycle
+    \item \textbf{Delay:} 1 cycle per flagged branch
+\end{itemize}
+
+\textbf{Compiler Optimization:} Insert independent instruction between comparison and branch:
+
+\begin{lstlisting}[caption={Avoiding stall with instruction scheduling}]
+SUB r3, r1, r2      # Sets flags
+LW  r4, 0(r14)      # Independent load (fills bubble)
+BEQ equal           # Flags ready by this point
+\end{lstlisting}
+
+\section{Design Rationale}
+
+\subsection{Why RISC-4 Uses Flags}
+
+While some RISC designs (MIPS, RISC-V) avoid condition codes, RISC-4 adopts flags for several reasons:
+
+\textbf{1. Historical Authenticity}
+\begin{itemize}
+    \item Every 4-bit and 8-bit microprocessor of the 1970s used flags
+    \item Intel 4004 (1971) had Carry and Accumulator Zero flags
+    \item RISC-4 represents "RISC in 1971" flags were the standard then
+\end{itemize}
+
+\textbf{2. Commercial RISC Precedent}
+\begin{itemize}
+    \item ARM (1985): NZCV flags, most successful RISC architecture
+    \item SPARC (1987): Integer condition codes
+    \item PowerPC (1990): Condition register
+    \item All three use flags despite being RISC
+\end{itemize}
+
+\textbf{3. Code Density}
+\begin{itemize}
+    \item Saves instructions: SUB + BEQ vs SUB + SLT + BNE
+    \item Critical for 4-bit architecture with limited memory
+    \item Typical comparison requires 2 instructions instead of 3
+\end{itemize}
+
+\textbf{4. Pipeline Equivalence}
+\begin{itemize}
+    \item Flag hazards and register hazards have identical solutions
+    \item Both require forwarding or stalling
+    \item No performance disadvantage compared to flagless design
+\end{itemize}
+
+\textbf{5. Simplicity}
+\begin{itemize}
+    \item Only 2 flags (C and Z), not 8+ like x86
+    \item Clear update rules: ALU sets, Load/Store preserves
+    \item Intuitive for programmers familiar with assembly
+\end{itemize}
+
+\subsection{What RISC-4 Avoids}
+
+RISC-4's flag implementation avoids the complexity criticized in CISC designs:
+
+\begin{itemize}
+    \item \textbf{No implicit flag updates:} Load/store don't set flags (unlike x86's MOV)
+    \item \textbf{No complex flags:} No overflow (V), parity (P), or auxiliary carry (AC)
+    \item \textbf{No every-instruction updates:} Only ALU operations affect flags
+    \item \textbf{No condition code register:} Flags are hardware state, not GPRs
+\end{itemize}
+
+This keeps the design simple, regular, and pipeline-friendly — core RISC principles.
+
+% ============================================================
+% CHAPTER : INSTRUCTION SET
 % ============================================================
 \chapter{Instruction Set Reference}
 
@@ -370,7 +742,7 @@ Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across t
 
 Table~\ref{tab:opcodes} lists all RISC-4 instructions.
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \small
 \begin{tabular}{@{}clcl@{}}
@@ -398,7 +770,7 @@ Table~\ref{tab:opcodes} lists all RISC-4 instructions.
 \caption{RISC-4 Opcode Map}
 \label{tab:opcodes}
 \end{table}
-\pagebreak
+ 
 
 \section{Arithmetic Instructions}
 
@@ -408,14 +780,21 @@ Table~\ref{tab:opcodes} lists all RISC-4 instructions.
 ADD rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{0}{R-type}{0000 dddd ssss tttt}{rd \leftarrow rs + rt}{Carry}{4 (single-cycle impl: 1)}
+\instructionDef{0}{R-type}{0000 dddd ssss tttt}{rd \leftarrow rs + rt}{C, Z}{4 (single-cycle impl: 1)}
 
-\noindent \textbf{Description:} Adds the contents of registers \texttt{rs} and \texttt{rt}, storing the 4-bit result in \texttt{rd}. The carry-out is stored in the carry flag.
+\noindent \textbf{Description:} Adds the contents of registers \texttt{rs} and \texttt{rt}, storing the 4-bit result in \texttt{rd}. The carry-out is stored in the \textbf{Carry} flag. If result is zero then the \textbf{Zero} flag is set.
 
-\textbf{Example:}
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← Carry out from bit 3 (unsigned overflow)
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\textbf{Examples:}
 \begin{lstlisting}
-ADD r3, r1, r2    # r3 = r1 + r2
-# If r1 = 7, r2 = 9: r3 = 0, carry = 1
+ADD r1, r2, r3      # r1 = r2 + r3
+# If r2 = 0xF, r3 = 0x1: result = 0x0, C = 1, Z = 1
+# If r2 = 0x7, r3 = 0x2: result = 0x9, C = 0, Z = 0
 \end{lstlisting}
 
 \subsection{SUB -- Subtract}
@@ -423,31 +802,53 @@ ADD r3, r1, r2    # r3 = r1 + r2
 SUB rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{1}{R-type}{0001 dddd ssss tttt}{rd \leftarrow rs - rt}{Carry}{4 (single-cycle impl: 1)}
+\instructionDef{1}{R-type}{0001 dddd ssss tttt}{rd \leftarrow rs - rt}{C, Z}{4 (single-cycle impl: 1)}
 
 
-\noindent \textbf{Description:} Subtracts the contents of registers \texttt{rs} and \texttt{rt}, storing the 4-bit result in \texttt{rd}. The carry-out is stored in the carry flag.
+\noindent \textbf{Description:} Subtracts the contents of registers \texttt{rs} and \texttt{rt}, storing the 4-bit result in \texttt{rd}. The carry-out is stored in the \textbf{Carry} flag. If the result is Zero the \textbf{Zero} Flag is set
 
-\textbf{Example:}
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← 1 if borrow occurred (unsigned underflow), 0 otherwise
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\textbf{Examples:}
 \begin{lstlisting}
-SUB r4, r5, r6 # r4 = r5 - r6
-# If r5=3, r6=5: r4=16 (0xE = -2 in two's compliment), C=1
+SUB r4, r5, r6      # r4 = r5 - r6
+# If r5 = 0x3, r6 = 0x5: result = 0xE (-2), C = 1, Z = 0
+# If r5 = 0x8, r6 = 0x8: result = 0x0, C = 0, Z = 1
 \end{lstlisting}
 
-\pagebreak
+\textbf{Note:} The Z flag is set when operands are equal, making SUB useful for comparisons.
+
+ 
 \subsection{AND -- Bitwise AND}
 \begin{lstlisting}
 AND rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{2}{R-type}{0010 dddd ssss tttt}{rd \leftarrow & rt}{None}{4 (single-cycle impl: 1)}
+\instructionDef{2}{R-type}{0010 dddd ssss tttt}{rd \leftarrow rs & rt}{Carry, Zero}{4 (single-cycle impl: 1)}
 
-\noindent \textbf{Description:} Bitwise AND compare operation on registers \textbf{rs} and \textbf{rt}, results stored in \textbf{rd}. No Carry flag
+\noindent \textbf{Description:} Bitwise AND compare operation on registers \textbf{rs} and \textbf{rt}, results stored in \textbf{rd}. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
-\textbf{Example:}
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← 0 (cleared)
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\textbf{Examples:}
 \begin{lstlisting}
-AND r7, r8, r9,  # r7 = r8 & r9
-# if r8= 0b1010, r9=0b1100: r7=0b1000
+AND r7, r8, r9      # r7 = r8 & r9
+# If r8 = 0b1010, r9 = 0b1100: result = 0b1000, C = 0, Z = 0
+# If r8 = 0b1010, r9 = 0b0101: result = 0b0000, C = 0, Z = 1
+\end{lstlisting}
+
+\textbf{Use Case:} Test if specific bits are set:
+\begin{lstlisting}
+AND r1, r2, r0      # Test if r2 is zero
+BEQ  is_zero        # Branch if Z = 1
 \end{lstlisting}
 
 \subsection{OR -- Bitwise OR}
@@ -455,44 +856,147 @@ AND r7, r8, r9,  # r7 = r8 & r9
 OR rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{3}{R-type}{0011 dddd ssss tttt}{rd \leftarrow rs \mid rt}{None}{4 (single-cycle impl: 1)}
+\instructionDef{3}{R-type}{0011 dddd ssss tttt}{rd \leftarrow rs \mid rt}{--}{4 (single-cycle impl: 1)}
 
-\noindent \textbf{Description:} Bitwise OR compare operation on registers \textbf{rs} and \textbf{rt}, results store in \textbf{rd}. No Carry flag
+\noindent \textbf{Description:} Bitwise OR compare operation on registers \textbf{rs} and \textbf{rt}, results store in \textbf{rd}. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
-\textbf{Example:}
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← 0 (cleared)
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\textbf{Examples:}
 \begin{lstlisting}
-OR r2, r3, r0,  # r2 = r3 | 0 = r3 # used for MOV ops
-# if r2=0b0101, r3=0b0011 | r0=0: r2=0b0011
+OR r2, r3, r0       # r2 = r3 | 0 = r3 (MOV pseudo-op)
+# Z = 1 if r3 was 0, else Z = 0
+# C = 0 always
+
+OR r1, r1, r1       # Explicit way to clear C, update Z
 \end{lstlisting}
 
-\pagebreak
+ 
 \subsection{XOR -- Bitwise Exclusive OR}
 \begin{lstlisting}
 XOR rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{4}{R-type}{0100 dddd ssss tttt}{rd \leftarrow rs \veebar rt}{None}{4 (single-cycle impl: 1)}
+\instructionDef{4}{R-type}{0100 dddd ssss tttt}{rd \leftarrow rs \veebar rt}{--}{4 (single-cycle impl: 1)}
 
-\noindent \textbf{Description:} Bitwise eXclusive OR compare operation on registers \textbf{rs} and \textbf{rt}, results store in \textbf{rd}. No Carry flag
+\noindent \textbf{Description:} Bitwise eXclusive OR compare operation on registers \textbf{rs} and \textbf{rt}, results store in \textbf{rd}. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
-\textbf{Example:}
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← 0 (cleared)
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\textbf{Examples:}
 \begin{lstlisting}
-XOR r1, r1, r1 #Clear r1
+XOR r1, r1, r1      # Clear r1 (result = 0)
+# r1 = 0, C = 0, Z = 1
+
+XOR r2, r3, r4      # r2 = r3 ^ r4
+# Z = 1 if r3 == r4, else Z = 0
+# C = 0 always
 \end{lstlisting}
+
+\textbf{Use Case:} XOR with self is an idiomatic way to clear a register and set Z flag.
+
+
 \subsection{SLT -- Set Less Than (Signed)}
 \begin{lstlisting}
 SLT rd, rs, rt
 \end{lstlisting}
-\instructionDef{5}{R-type}{0101 dddd ssss tttt}{rd \leftarrow (rs < rt) ? 1 : 0 (signed comparison)}{None}{4 (single-cycle impl: 1)}
+\instructionDef{5}{R-type}{0101 dddd ssss tttt}{rd \leftarrow (rs < rt) ? 1 : 0 (signed comparison)}{--}{4 (single-cycle impl: 1)}
 
-\noindent \textbf{Description:} Set Less Than performs a signed comparison of \textbf{rs} and \textbf{rt} if \textbf{rs} is less than \textbf{rt} then \textbf{rd} is set to 1, if not \textbf{rd} is set to 0.
+\noindent \textbf{Description:} Set Less Than performs a signed comparison of \textbf{rs} and \textbf{rt} if \textbf{rs} is less than \textbf{rt} then \textbf{rd} is set to 1, if not \textbf{rd} is set to 0. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
-\textbf{Example:}
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← 0 (cleared)
+    \item \textbf{Z} ← 1 if result == 0 (comparison false), else 0
+\end{itemize}
+
+\textbf{Examples:}
 \begin{lstlisting}
-SLT r1, r2, r3    # if r2 < r3, r1=1, else r1=0
-# If r2=0xF (-1 signed), r3=0x1 (1): r1=1 (true)
-# If r2=0x5 (5), r3=0x3 (3): r1=0 (false)
+SLT r1, r2, r3      # r1 = (r2 < r3) ? 1 : 0
+# If r2 = 0xF (-1), r3 = 0x1 (1): r1 = 1, C = 0, Z = 0
+# If r2 = 0x5 (5),  r3 = 0x3 (3): r1 = 0, C = 0, Z = 1
+
+# Use with branch:
+SLT r1, r2, r3      # Test r2 < r3
+BNE less_than       # Branch if Z = 0 (comparison true)
+BEQ greater_equal   # Branch if Z = 1 (comparison false)
 \end{lstlisting}
+\pagebreak
+\section{Shift Instruction}
+
+
+\subsection{SHF – Shift}
+
+\begin{lstlisting}
+SHF rd, rs, imm4
+\end{lstlisting}
+
+\instructionDef{6}{I-type}{0110 dddd ssss iiii}{rd \leftarrow shift(rs, imm4)}{ C, Z}{4}
+
+\textbf{Description:} Shifts the value in rs by the amount and direction specified in imm4.
+
+\textbf{Immediate Encoding:}
+\begin{itemize}
+    \item \textbf{Bit 3:} Direction (0 = left, 1 = right)
+    \item \textbf{Bits 2-0:} Shift amount (0-7)
+\end{itemize}
+
+\textbf{Operation:}
+\begin{itemize}
+    \item \textbf{Shift Left:} rd ← rs « amount, fill with 0
+    \item \textbf{Shift Right:} rd ← rs » amount, fill with 0 (logical)
+\end{itemize}
+
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← Last bit shifted out
+    \begin{itemize}
+        \item Shift left: C ← bit 3 of original value (before shift)
+        \item Shift right: C ← bit 0 of original value (before shift)
+        \item For multi-bit shifts, C contains the last bit shifted out
+    \end{itemize}
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\pagebreak
+\textbf{Examples:}
+\begin{lstlisting}
+SHF r1, r2, 0x1     # Shift left by 1: r1 = r2 << 1
+# If r2 = 0b1010: r1 = 0b0100, C = 1, Z = 0
+
+SHF r1, r2, 0x9     # Shift right by 1: r1 = r2 >> 1
+# If r2 = 0b1010: r1 = 0b0101, C = 0, Z = 0
+
+SHF r1, r2, 0xA     # Shift right by 2: r1 = r2 >> 2
+# If r2 = 0b1100: r1 = 0b0011, C = 0, Z = 0
+
+SHF r1, r2, 0x4     # Shift left by 4 (clear register)
+# r1 = 0b0000, C = ?, Z = 1
+\end{lstlisting}
+
+\textbf{Use Cases:}
+\begin{lstlisting}
+# Multiply by 2 (shift left 1)
+SHF r1, r2, 0x1     # r1 = r2 * 2
+
+# Divide by 2 (shift right 1, unsigned)
+SHF r1, r2, 0x9     # r1 = r2 / 2
+
+# Multi-precision shift: shift 8-bit value r0:r1 left
+SHF r1, r1, 0x1     # Shift low nibble left, C = old bit 3
+# (Need to implement rotate through carry for high nibble)
+\end{lstlisting}
+
+\textbf{Note:} RISC-4 does not have arithmetic right shift (sign-extension). For signed division by 2, additional instructions are needed to handle the sign bit.
+
 
 
 \pagebreak
@@ -507,7 +1011,21 @@ ADC rd, rs
 \end{lstlisting}
 \instructionDef{7}{R-type}{0111 dddd ssss 0000}{rd \leftarrow rd + rs + Carry}{Carry}{4}
 
-\noindent \textbf{Description:} Adds \texttt{rs} and the current Carry flag to \texttt{rd}. Used for multi-nibble addition.
+\noindent \textbf{Description:} Adds \texttt{rs} and the current \textbf{Carry} flag to \texttt{rd} \textbf{Zero} flag set if result == \textbf{0}. Used for multi-nibble addition.
+
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← Carry out from bit 3
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\textbf{Multi-Precision Example:}
+\begin{lstlisting}
+# 8-bit addition: r0:r1 = r2:r3 + r4:r5
+ADD r1, r3, r5      # Low nibble: r1 = r3 + r5, sets C
+ADC r0, r2, r4      # High nibble: r0 = r2 + r4 + C
+# Final Z flag reflects whether entire 8-bit result is zero
+\end{lstlisting}
 
 \subsection{SBB -- Subtract with Borrow}
 \begin{lstlisting}
@@ -515,29 +1033,72 @@ SBB rd, rs
 \end{lstlisting}
 \instructionDef{7}{R-type}{0111 dddd ssss 0001}{rd \leftarrow rd - rs - Carry}{Carry}{4}
 
-\noindent \textbf{Description:} Subtracts \texttt{rs} and the Carry flag (borrow) from \texttt{rd}. Used for multi-nibble subtraction.
+\noindent \textbf{Description:} Subtracts \texttt{rs} and the Carry flag (borrow) from \texttt{rd} \textbf{Zero} flag set if result == \textbf{0}. Used for multi-nibble subtraction.
+
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← 1 if borrow occurred, else 0
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\textbf{Multi-Precision Example:}
+\begin{lstlisting}
+# 8-bit subtraction: r0:r1 = r2:r3 - r4:r5
+SUB r1, r3, r5      # Low nibble: r1 = r3 - r5, sets C if borrow
+SBB r0, r2, r4      # High nibble: r0 = r2 - r4 - C
+# Z flag reflects whether entire 8-bit result is zero
+\end{lstlisting}
 
 \subsection{NEG -- Negate (Two's Complement)}
 \begin{lstlisting}
 NEG rd, rs
 \end{lstlisting}
-\instructionDef{7}{R-type}{0111 dddd ssss 0010}{rd \leftarrow 0 - rs}{Carry}{4}
+\instructionDef{7}{R-type}{0111 dddd ssss 0010}{rd \leftarrow 0 - rs}{ C, Z}{4}
 
-\noindent \textbf{Description:} Computes the two's complement of \texttt{rs} and stores it in \texttt{rd}. (Pseudo-equivalent to \texttt{SUB rd, r0, rs}).
+\noindent \textbf{Description:} Computes the two's complement of \texttt{rs} and stores it in \texttt{rd}. (Pseudo-equivalent to \texttt{SUB rd, r0, rs}). \textbf{Carry} flag set to 0 if operand was zero else \textbf{Carry} set to 1. \textbf{Zero} flag set if result == \textbf{0}
+
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← 0 if operand was zero, else 1
+    \item \textbf{Z} ← 1 if result == 0 (only when negating zero), else 0
+\end{itemize}
+
+\textbf{Examples:}
+\begin{lstlisting}
+NEG r1, r2          # r1 = -r2 (two's complement)
+# If r2 = 0x5 (5):  r1 = 0xB (-5), C = 1, Z = 0
+# If r2 = 0x0 (0):  r1 = 0x0 (0),  C = 0, Z = 1
+# If r2 = 0x8 (-8): r1 = 0x8 (-8), C = 1, Z = 0 (overflow!)
+\end{lstlisting}
+
+\textbf{Note:} Negating -8 produces -8 due to two's complement overflow in 4-bit signed arithmetic.
+
+\pagebreak
 \section{Immediate Arithmetic Instructions}
 \subsection{ADDI -- ADD Immediate}
 \begin{lstlisting}
 ADDI rd,rs, imm4
 \end{lstlisting}
-\instructionDef{8}{1000 dddd ssss iiii}{I-type}{rd \leftarrow rs + sign_extend(imm4)}{Carry}{4 (single-cycle impl: 1)}
+\instructionDef{8}{I-type}{1000 dddd ssss iiii}{rd \leftarrow rs + sign_extend(imm4)}{ C, Z}{4 (single-cycle impl: 1)}
 
 \noindent \textbf{Description:} ADD Immediate adds the sign-extended 4-bit immediate \texttt{imm4} to the contents of register \texttt{rs}, storing the result in \texttt{rd}. This allows for incrementing and decrementing (using negative immediates).
 
-\textbf{Example:}
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← Carry out from bit 3
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\textbf{Examples:}
 \begin{lstlisting}
-ADDI r1, r2, 5 # r1 = r2 + 5
-ADDI r3, r3, -1 # r3 = r3 - 1 (can subtract)
+ADDI r1, r2, 5      # r1 = r2 + 5
+# If r2 = 0xB (11): r1 = 0x0 (0), C = 1, Z = 1
+
+ADDI r3, r3, -1     # r3 = r3 - 1 (decrement)
+# If r3 = 0x1: r3 = 0x0, C = 0, Z = 1
+# If r3 = 0x0: r3 = 0xF (-1), C = 1, Z = 0
 \end{lstlisting}
+
 \noindent \textbf{Note on Negative Immediates:}
 Since the immediate field is 4 bits wide, it can represent values from -8 to +7. The processor treats the binary value as a signed two's complement number.
 \begin{itemize}
@@ -549,41 +1110,80 @@ Since the immediate field is 4 bits wide, it can represent values from -8 to +7.
 \begin{lstlisting}
 ANDI rd, rs, imm4
 \end{lstlisting}
-\instructionDef{9}{I-type}{1001 dddd ssss iiii}{rd \leftarrow rs \ \& \ zero\_extend(imm4)}{None}{4}
+\instructionDef{9}{I-type}{1001 dddd ssss iiii}{rd \leftarrow rs \ \& \ zero\_extend(imm4)}{ C, Z}{4}
 
 \noindent \textbf{Description:} Performs a bitwise AND between register \texttt{rs} and the 4-bit immediate, storing the result in \texttt{rd}.
-\textbf{Note:} Since the register is 4 bits, the mask \texttt{imm4} covers all bits.
+\textbf{Note:} Since the register is 4 bits, the mask \texttt{imm4} covers all bits. \textbf{Carry} flag is cleared, \textbf{Zero} flag is set if result == \textbf{0}
 
-\textbf{Example:}
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← 0 (cleared)
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\textbf{Examples:}
 \begin{lstlisting}
-ANDI r1, r2, 0xF  # r1 = r2 & 1111 (Copy r2)
-ANDI r1, r2, 0x1  # r1 = r2 & 0001 (Extract lowest bit)
-\end{lstlisting}
+ANDI r1, r2, 0x1    # Extract bit 0 of r2
+# If r2 = 0b1010: r1 = 0b0000, C = 0, Z = 1
+# If r2 = 0b1011: r1 = 0b0001, C = 0, Z = 0
 
-\pagebreak
+ANDI r1, r2, 0x8    # Extract bit 3 (sign bit)
+BNE  negative       # Branch if Z = 0 (bit was set)
+\end{lstlisting}
+ 
 
 \subsection{ORI -- OR Immediate}
 \begin{lstlisting}
 ORI rd, rs, imm4
 \end{lstlisting}
-\instructionDef{A}{I-type}{1010 dddd ssss iiii}{rd \leftarrow rs \ | \ zero\_extend(imm4)}{None}{4}
+\instructionDef{A}{I-type}{1010 dddd ssss iiii}{rd \leftarrow rs \ | \ zero\_extend(imm4)}{ C, Z}{4}
 
-\noindent \textbf{Description:} Performs a bitwise OR between register \texttt{rs} and the 4-bit immediate, storing the result in \texttt{rd}.
+\noindent \textbf{Description:} Performs a bitwise OR between register \texttt{rs} and the 4-bit immediate, storing the result in \texttt{rd}. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
+
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← 0 (cleared)
+    \item \textbf{Z} ← 1 if result == 0, else 0
+\end{itemize}
+
+\textbf{Examples:}
+\begin{lstlisting}
+ORI r1, r0, 0x5     # Load immediate: r1 = 0x5
+# r1 = 5, C = 0, Z = 0
+
+ORI r2, r3, 0x8     # Set bit 3 (sign bit)
+# Z = 0 (result always non-zero since bit 3 set)
+\end{lstlisting}
 
 \subsection{SLTI -- Set Less Than Immediate}
 \begin{lstlisting}
 SLTI rd, rs, imm4
 \end{lstlisting}
-\instructionDef{B}{I-type}{1011 dddd ssss iiii}{rd \leftarrow (rs < sign\_extend(imm4)) ? 1 : 0}{None}{4}
+\instructionDef{B}{I-type}{1011 dddd ssss iiii}{rd \leftarrow (rs < sign\_extend(imm4)) ? 1 : 0}{ C, Z}{4}
 
-\noindent \textbf{Description:} Compares \texttt{rs} to the signed 4-bit immediate. If \texttt{rs} is strictly smaller, \texttt{rd} is set to 1, otherwise 0.
-\pagebreak
+\noindent \textbf{Description:} Compares \texttt{rs} to the signed 4-bit immediate. If \texttt{rs} is strictly smaller, \texttt{rd} is set to 1, otherwise 0. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
+
+\textbf{Flags:}
+\begin{itemize}
+    \item \textbf{C} ← 0 (cleared)
+    \item \textbf{Z} ← 1 if result == 0 (comparison false), else 0
+\end{itemize}
+
+\textbf{Examples:}
+\begin{lstlisting}
+SLTI r1, r2, 5      # r1 = (r2 < 5) ? 1 : 0
+# If r2 = 0x3 (3):  r1 = 1, C = 0, Z = 0 (true)
+# If r2 = 0x7 (7):  r1 = 0, C = 0, Z = 1 (false)
+# If r2 = 0xF (-1): r1 = 1, C = 0, Z = 0 (true, signed)
+\end{lstlisting}
+
+ 
 \section{Memory Instructions}
 \subsection{LW -- Load Word}
 \begin{lstlisting}
 LW rd, offset(base)
 \end{lstlisting}
-\instructionDef{C}{M-type}{1100 dddd bbbb oooo}{rd \leftarrow mem[reg\_pair(base) + sign\_extend(offset)]}{None}{5}
+\instructionDef{C}{M-type}{1100 dddd bbbb oooo}{rd \leftarrow mem[reg\_pair(base) + sign\_extend(offset)]}{--}{5}
 
 \noindent \textbf{Description:} Loads a 4-bit nibble from data memory into \texttt{rd}.
 \textbf{Addressing:} The effective address is calculated by taking the 8-bit value in the register pair specified by \texttt{base} (must be even) and adding the sign-extended 4-bit \texttt{offset}.
@@ -600,7 +1200,7 @@ LW r1, 4(r14)      # Address = 0x80 + 4 = 0x84
 \begin{lstlisting}
 SW rs, offset(base)
 \end{lstlisting}
-\instructionDef{D}{M-type}{1101 ssss bbbb oooo}{mem[reg\_pair(base) + sign\_extend(offset)] \leftarrow rs}{None}{5}
+\instructionDef{D}{M-type}{1101 ssss bbbb oooo}{mem[reg\_pair(base) + sign\_extend(offset)] \leftarrow rs}{--}{5}
 
 \noindent \textbf{Description:} Stores the 4-bit value from \texttt{rs} into data memory.
 \textbf{Note:} \texttt{base} must be an even-numbered register representing a pair.
@@ -622,7 +1222,7 @@ BNE offset8   # Branch if Not Equal (Z=0)
 BCS offset8   # Branch if Carry Set (C=1)
 BCC offset8   # Branch if Carry Clear (C=0)
 \end{lstlisting}
-\instructionDef{E}{I-type}{1110 cccc oooooooo}{if (cond) pc \leftarrow pc + sign\_extend(offset8)}{None}{3}
+\instructionDef{E}{I-type}{1110 cccc oooooooo}{if (cond) pc \leftarrow pc + sign\_extend(offset8)}{--}{3}
 
 \noindent \textbf{Description:} Branches relative to the current PC if the condition specified by the 4-bit \texttt{cond} field is met.
 \begin{itemize}
@@ -634,63 +1234,1677 @@ BCC offset8   # Branch if Carry Clear (C=0)
 \begin{lstlisting}
 J target12
 \end{lstlisting}
-\instructionDef{F}{J-type}{1111 aaaa aaaa aaaa}{pc \leftarrow target12}{None}{3}
+\instructionDef{F}{J-type}{1111 aaaa aaaa aaaa}{pc \leftarrow target12}{--}{3}
 
 \noindent \textbf{Description:} Unconditional absolute jump to the 12-bit address \texttt{target12}. This allows jumping to any location in the 4096-nibble instruction memory.
 
-%======================================
-% CHAPTER 4 ADRESSING
-%======================================
-\chapter{Addressing}
-\section{Extended Precision & Addressing}
+% ============================================================
+% CHAPTER 8: PIPELINE ARCHITECTURE
+% ============================================================
+\chapter{Pipeline Architecture}
 
-Since RISC-4 uses a 4-bit datapath but requires a 12-bit address space, it utilizes \textbf{Register Pairing} to handle pointers and large integers.
+\section{Overview}
 
-\subsection{Register Pairs}
-When an instruction requires an operand wider than 4 bits (specifically Load/Store addresses), the architecture implicitly uses the specified register and the following consecutive register(s) to form the value.
+RISC-4 implements a classic 5-stage RISC pipeline designed for simplicity and efficiency. The pipeline enables an ideal throughput of one instruction per cycle (CPI = 1.0) while maintaining a straightforward control path suitable for educational implementation and FPGA synthesis.
 
-For Memory Operations (\texttt{LW}, \texttt{SW}), the \texttt{base} register implies a \textbf{aligned pair}:
+\section{Pipeline Stages}
+
+\subsection{Stage 1: Instruction Fetch (IF)}
+
+\textbf{Duration:} 1 cycle
+
+\textbf{Operations:}
 \begin{itemize}
-    \item \textbf{Pairing Rule:} A pointer consists of \texttt{r[n]} (high nibble) and \texttt{r[n+1]} (low nibble).
-    \item \textbf{Stack Pointer:} The assembly alias \texttt{sp} refers to the pair \texttt{r14:r15}.
-    \item \textbf{Frame Pointer:} The alias \texttt{fp} refers to the pair \texttt{r12:r13}.
+    \item Fetch 16-bit instruction from instruction memory at address PC
+    \item Increment PC by 1 (RISC-4 uses nibble addressing, instructions are 4 nibbles = 16 bits)
+    \item Forward instruction to IF/ID pipeline register
 \end{itemize}
 
-\subsection{Multi-Precision Arithmetic}
-To perform math on numbers larger than 4 bits (e.g., 8-bit integers), software must chain instructions using the Carry flag.
-
-\textbf{Example: 8-bit Addition (r0:r1 = r2:r3 + r4:r5)}
-\begin{lstlisting}
-ADD r1, r3, r5    # Add lower nibbles (r3 + r5) -> result in r1, sets Carry
-ADC r0, r2, r4    # Add upper nibbles with Carry -> result in r0
+\textbf{Critical Path:}
+\begin{lstlisting}[language={}]
+PC → Instruction Memory → Instruction Register → IF/ID Register
 \end{lstlisting}
 
+\textbf{Stall Conditions:}
+\begin{itemize}
+    \item Instruction memory not ready (cache miss in advanced implementations)
+    \item Pipeline stall propagated from later stages
+\end{itemize}
+
+\subsection{Stage 2: Instruction Decode (ID)}
+
+\textbf{Duration:} 1 cycle
+
+\textbf{Operations:}
+\begin{itemize}
+    \item Decode opcode [15:12] to determine instruction type
+    \item Read up to two source registers from register file
+    \item Sign-extend or zero-extend immediate values
+    \item Generate control signals for subsequent stages
+    \item Evaluate branch conditions (for conditional branches)
+\end{itemize}
+
+\textbf{Register File Access:}
+\begin{lstlisting}[language={}]
+Read Port 1: rs [7:4]
+Read Port 2: rt [3:0] (R-type) or imm4 [3:0] (I-type)
+\end{lstlisting}
+
+\textbf{Branch Evaluation:}
+\begin{itemize}
+    \item For conditional branches (BEQ, BNE, BCS, BCC), condition is checked in ID stage
+    \item Branch target address calculated: PC + sign\_extend(offset8)
+    \item If branch taken, flush IF stage and redirect PC
+\end{itemize}
+
+\textbf{Stall Conditions:}
+\begin{itemize}
+    \item Load-use hazard: Previous instruction is LW and current instruction uses the loaded register
+    \item Flag hazard: Previous instruction sets flags and current instruction is a conditional branch
+\end{itemize}
+
+\subsection{Stage 3: Execute (EX)}
+
+\textbf{Duration:} 1 cycle
+
+\textbf{Operations:}
+\begin{itemize}
+    \item Perform ALU operation (ADD, SUB, AND, OR, XOR, SLT, shifts)
+    \item Calculate memory address for load/store (base + offset)
+    \item Update Carry (C) and Zero (Z) flags based on ALU result
+    \item Forward result to ID stage (for forwarding) and to EX/MEM register
+\end{itemize}
+
+\textbf{ALU Operations:}
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Instruction Type} & \textbf{ALU Operation} \\
+\midrule
+Arithmetic (ADD, SUB, ADC, SBB) & 4-bit adder/subtractor \\
+Logical (AND, OR, XOR) & Bitwise operations \\
+Comparison (SLT, SLTI) & Signed comparison \\
+Shift (SHF) & Barrel shifter (0-7 positions) \\
+Memory (LW, SW) & Address calculation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Flag Generation:}
+\begin{itemize}
+    \item Carry flag: Set by arithmetic/shift operations
+    \item Zero flag: Set if ALU result == 0x0
+    \item Flags forwarded to ID stage for immediate use by branches
+\end{itemize}
+
+\subsection{Stage 4: Memory Access (MEM)}
+
+\textbf{Duration:} 1 cycle
+
+\textbf{Operations:}
+\begin{itemize}
+    \item Load: Read 4-bit nibble from data memory at calculated address
+    \item Store: Write 4-bit nibble to data memory at calculated address
+    \item Non-memory instructions: Pass ALU result through unchanged
+\end{itemize}
+
+\textbf{Memory Interface:}
+\begin{lstlisting}[language={}]
+Address: 8-bit (from register pair + offset)
+Data: 4-bit nibble
+Control: Read enable, Write enable
+\end{lstlisting}
+
+\textbf{Memory Map:}
+\begin{itemize}
+    \item Data memory: 256 nibbles (0x00 - 0xFF)
+    \item Accessed via 8-bit addresses formed by register pairs
+\end{itemize}
+
+\subsection{Stage 5: Write Back (WB)}
+
+\textbf{Duration:} 1 cycle
+
+\textbf{Operations:}
+\begin{itemize}
+    \item Select result source (ALU result or memory data)
+    \item Write result to destination register rd
+    \item Register r0 writes are ignored (hardwired to zero)
+\end{itemize}
+
+\textbf{Write Sources:}
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Instruction Type} & \textbf{Write Source} \\
+\midrule
+Arithmetic/Logical & ALU result from EX stage \\
+Load (LW) & Memory data from MEM stage \\
+Store (SW), Branches, Jump & No write (rd unused) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Pipeline Registers}
+
+Data is passed between stages via pipeline registers:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lp{8cm}}
+\toprule
+\textbf{Register} & \textbf{Contents} \\
+\midrule
+IF/ID & Instruction[15:0], PC+1 \\
+ID/EX & Control signals, Register values (rs, rt), Immediate, PC+1, rd address \\
+EX/MEM & Control signals, ALU result, rt value (for stores), rd address, Flags \\
+MEM/WB & Control signals, Memory data or ALU result, rd address \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Hazards and Solutions}
+
+\subsection{Data Hazards}
+
+\subsubsection{RAW (Read After Write) Hazards}
+
+\textbf{Problem:} Instruction needs a register that hasn't been written yet.
+
+\textbf{Example:}
+\begin{lstlisting}
+ADD r3, r1, r2   # r3 written in WB stage (cycle 5)
+SUB r4, r3, r5   # r3 needed in EX stage (cycle 3)
+              # Hazard: r3 not ready when needed
+\end{lstlisting}
+
+\textbf{Solution 1: Forwarding (Bypassing)}
+
+Forward data from later pipeline stages to earlier stages:
+
+\begin{itemize}
+    \item \textbf{EX-to-EX forwarding:} Forward ALU result from EX/MEM register back to ALU inputs
+    \item \textbf{MEM-to-EX forwarding:} Forward memory result from MEM/WB register to ALU inputs
+\end{itemize}
+
+\textbf{Forwarding Paths:}
+\begin{lstlisting}[language={}]
+1. EX/MEM.ALUResult → ID/EX (ALU operand)
+2. MEM/WB.Result → ID/EX (ALU operand)
+\end{lstlisting}
+
+\textbf{Hardware Cost:}
+\begin{itemize}
+    \item 2 multiplexers per ALU input (4 total)
+    \item Comparators to detect hazard conditions
+    \item Minimal: ~50 gates
+\end{itemize}
+
+\subsubsection{Load-Use Hazard}
+
+\textbf{Problem:} Load instruction followed immediately by use of loaded data.
+
+\textbf{Example:}
+\begin{lstlisting}
+LW  r1, 0(r14)   # r1 available in MEM stage (cycle 4)
+ADD r3, r1, r2   # r1 needed in EX stage (cycle 3)
+              # Hazard: r1 not ready - 1 cycle gap
+\end{lstlisting}
+
+\textbf{Solution: 1-Cycle Stall}
+
+\begin{itemize}
+    \item Detect hazard in ID stage: (previous instruction is LW) AND (LW.rd == current.rs or current.rt)
+    \item Insert 1-cycle bubble (NOP) into pipeline
+    \item Allow load to complete before use
+    \item Performance: CPI increases by ~0.1 (assuming 10\% loads with immediate use)
+\end{itemize}
+
+\textbf{Compiler Optimization:}
+
+Insert independent instruction between load and use:
+
+\begin{lstlisting}
+LW  r1, 0(r14)   # Load r1
+ORI r4, r0, 5    # Independent operation (fills bubble)
+ADD r3, r1, r2   # r1 now ready (no stall)
+\end{lstlisting}
+
+\subsubsection{Flag Hazards}
+
+\textbf{Problem:} Conditional branch needs flags that haven't been computed yet.
+
+\textbf{Example:}
+\begin{lstlisting}
+ADD r1, r2, r3   # Sets C and Z flags in EX stage (cycle 3)
+BEQ target       # Needs Z flag in ID stage (cycle 3)
+              # Hazard: flags not ready
+\end{lstlisting}
+
+\textbf{Solution 1: Flag Forwarding}
+
+Forward flags from EX stage to branch evaluation logic in ID stage:
+
+\begin{itemize}
+    \item Hardware: 2-bit bypass path (C and Z flags)
+    \item Timing: Flags available same cycle they're computed
+    \item Delay: 0 cycles (resolved within cycle)
+\end{itemize}
+
+\textbf{Solution 2: 1-Cycle Stall}
+
+\begin{itemize}
+    \item Detect hazard: (previous instruction sets flags) AND (current instruction is conditional branch)
+    \item Insert 1-cycle stall
+    \item Simpler hardware than forwarding
+    \item Performance cost: ~0.05 CPI increase
+\end{itemize}
+
+\subsection{Control Hazards}
+
+\textbf{Problem:} Branch outcome not known until ID stage, but next instruction already fetched.
+
+\subsubsection{Branch Penalty}
+
+\textbf{Timeline:}
+\begin{lstlisting}[language={}]
+Cycle:  1    2    3    4    5
+BEQ     IF   ID   EX   MEM  WB   <- Branch taken/not decided in ID
+next    IF   XX   --   --   --   <- Fetched but may be wrong
+        --   IF   --   --   --   <- Correct instruction if branch taken
+\end{lstlisting}
+
+\textbf{Penalty:} 1 cycle for taken branches (IF stage fetched wrong instruction)
+
+\subsubsection{Solution 1: Branch Prediction (Static)}
+
+\textbf{Predict Not Taken:}
+\begin{itemize}
+    \item Assume all branches fall through
+    \item Continue fetching sequentially
+    \item If branch actually taken: Flush IF stage, redirect PC
+    \item Cost: 1 cycle penalty only when branch taken
+\end{itemize}
+
+\textbf{Performance:}
+\begin{itemize}
+    \item Best case (branch not taken): 0 penalty
+    \item Worst case (branch taken): 1 cycle penalty
+    \item Average: 0.5 cycles per branch (assuming 50\% taken rate)
+\end{itemize}
+
+\subsubsection{Solution 2: Branch Delay Slot}
+
+\textbf{Architecture Change:}
+\begin{itemize}
+    \item Instruction immediately after branch \textbf{always} executes
+    \item Compiler fills delay slot with useful instruction or NOP
+    \item No penalty if slot filled productively
+\end{itemize}
+
+\textbf{Example:}
+\begin{lstlisting}
+    SUB r3, r1, r2   # Sets flags
+    BEQ equal        # Branch
+    ADD r4, r5, r6   # DELAY SLOT: Always executes
+equal:
+    ...
+\end{lstlisting}
+
+\textbf{RISC-4 Decision:} Not implemented in v0.1 (simpler pipeline), but reserved for future versions.
+
+\section{Performance Analysis}
+
+\subsection{Ideal Performance}
+
+\begin{itemize}
+    \item \textbf{Ideal CPI:} 1.0 (one instruction per cycle)
+    \item \textbf{Clock frequency:} ~100 MHz (estimated for SKY130 process)
+    \item \textbf{Ideal throughput:} 100 MIPS
+\end{itemize}
+
+\subsection{Realistic Performance}
+
+\textbf{Hazard Impact:}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+\textbf{Hazard Type} & \textbf{Frequency} & \textbf{CPI Impact} \\
+\midrule
+Load-use stall & 10\% of instructions & +0.10 \\
+Branch misprediction & 15\% of instructions, 50\% taken & +0.075 \\
+Flag stall (if no forwarding) & 5\% of instructions & +0.05 \\
+\midrule
+\textbf{Total} & & \textbf{+0.225} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Realistic CPI:} ~1.2 to 1.3
+
+\textbf{Comparison:}
+\begin{itemize}
+    \item Intel 4004: CPI = 8.0 (8-16 cycles per instruction)
+    \item RISC-I: CPI = 1.3
+    \item RISC-4: CPI = 1.2 - 1.3
+\end{itemize}
+
+\textbf{Speedup vs. 4004:} 6× to 7× at same clock frequency
+
+\subsection{Optimization Opportunities}
+
+\textbf{Compiler Techniques:}
+\begin{itemize}
+    \item Instruction scheduling to avoid load-use hazards
+    \item Loop unrolling to reduce branch frequency
+    \item Register allocation to minimize memory access
+\end{itemize}
+
+\textbf{Hardware Enhancements (Future):}
+\begin{itemize}
+    \item Branch delay slots (reduce branch penalty to 0)
+    \item Dynamic branch prediction (reduce misprediction rate)
+    \item Dual-ported register file (eliminate some forwarding delays)
+\end{itemize}
+
+\section{Implementation Considerations}
+
+\subsection{Critical Paths}
+
+\textbf{Longest paths in each stage:}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lp{7cm}}
+\toprule
+\textbf{Stage} & \textbf{Critical Path} \\
+\midrule
+IF & PC → Instruction Memory → IF/ID Register \\
+ID & Register File Read → Sign Extend → ID/EX Register \\
+EX & ALU Input Mux → 4-bit Adder → Flag Generation → EX/MEM Register \\
+MEM & Address → Data Memory → MEM/WB Register \\
+WB & Result Mux → Register File Write \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Design Goal:} Balance stage delays to maximize clock frequency.
+
+\subsection{Forwarding Logic}
+
+\textbf{EX Hazard Detection:}
+\begin{lstlisting}[language={}]
+if (EX/MEM.RegWrite && EX/MEM.rd != 0 && EX/MEM.rd == ID/EX.rs)
+    ForwardA = 01  // Forward from EX/MEM
+if (EX/MEM.RegWrite && EX/MEM.rd != 0 && EX/MEM.rd == ID/EX.rt)
+    ForwardB = 01  // Forward from EX/MEM
+\end{lstlisting}
+
+\textbf{MEM Hazard Detection:}
+\begin{lstlisting}[language={}]
+if (MEM/WB.RegWrite && MEM/WB.rd != 0 && MEM/WB.rd == ID/EX.rs)
+    ForwardA = 10  // Forward from MEM/WB
+if (MEM/WB.RegWrite && MEM/WB.rd != 0 && MEM/WB.rd == ID/EX.rt)
+    ForwardB = 10  // Forward from MEM/WB
+\end{lstlisting}
+
+\subsection{Stall Logic}
+
+\textbf{Load-Use Hazard Detection:}
+\begin{lstlisting}[language={}]
+if (ID/EX.MemRead && 
+    ((ID/EX.rd == IF/ID.rs) || (ID/EX.rd == IF/ID.rt)))
+    Stall = 1  // Insert bubble, freeze IF and ID stages
+\end{lstlisting}
+
+\section{Design Rationale}
+
+\subsection{Why 5 Stages?}
+
+\begin{itemize}
+    \item \textbf{Classic RISC:} Proven design from MIPS, ARM
+    \item \textbf{Balanced stages:} Each stage ~equal delay
+    \item \textbf{Simple control:} Straightforward forwarding and hazard detection
+    \item \textbf{Educational:} Easy to understand and implement
+\end{itemize}
+
+\subsection{Alternatives Considered}
+
+\textbf{3-Stage Pipeline (IF, EX, WB):}
+\begin{itemize}
+    \item Simpler, fewer hazards
+    \item Longer critical path (lower clock frequency)
+    \item Less instructive (too simple for learning)
+\end{itemize}
+
+\textbf{7-Stage Pipeline (split EX into multiple stages):}
+\begin{itemize}
+    \item Higher clock frequency potential
+    \item More forwarding complexity
+    \item Overkill for 4-bit datapath
+\end{itemize}
+
+\textbf{Decision:} 5 stages balances performance, complexity, and educational value.
+
+%======================================
+% CHAPTER  ADRESSING
+%======================================
+
+\chapter{Addressing}
+
+\section{Overview}
+
+RISC-4 faces a fundamental challenge: a 4-bit datapath cannot directly address more than 16 locations (2\textsuperscript{4}), yet the architecture requires access to:
+
+\begin{itemize}
+    \item \textbf{Instruction memory:} 4096 nibbles (12-bit address space)
+    \item \textbf{Data memory:} 256 nibbles (8-bit address space)
+\end{itemize}
+
+To bridge this gap, RISC-4 employs \textbf{Register Pairing}, where consecutive registers combine to form wider addresses. This approach maintains the simplicity of a 4-bit datapath while enabling practical memory access.
+
+\section{Memory Organization}
+
+\subsection{Memory Map}
+
+RISC-4 uses separate instruction and data memories (Harvard architecture):
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Memory Type} & \textbf{Address Range} & \textbf{Size} \\
+\midrule
+Instruction Memory (ROM) & 0x000 - 0xFFF & 4096 nibbles (2048 bytes) \\
+Data Memory (RAM) & 0x00 - 0xFF & 256 nibbles (128 bytes) \\
+\bottomrule
+\end{tabular}
+\caption{RISC-4 Memory Map}
+\end{table}
+
+\subsection{Address Formation}
+
+\textbf{Instruction Addresses:}
+\begin{itemize}
+    \item Formed by 12-bit Program Counter (PC)
+    \item Automatically incremented by fetch unit
+    \item Modified by jumps and branches
+\end{itemize}
+
+\textbf{Data Addresses:}
+\begin{itemize}
+    \item Formed by combining two consecutive 4-bit registers
+    \item Explicitly specified in load/store instructions
+    \item Calculated as: \texttt{Address = (High\_Reg << 4) | Low\_Reg}
+\end{itemize}
+
+\section{Register Pairs}
+
+\subsection{Pair Formation Rules}
+
+Register pairs combine two consecutive registers to form an 8-bit value:
+
+\begin{enumerate}
+    \item \textbf{Base register must be even-numbered} (r0, r2, r4, ..., r14)
+    \item \textbf{High nibble:} Base register (e.g., r14)
+    \item \textbf{Low nibble:} Base register + 1 (e.g., r15)
+    \item \textbf{Formation:} \texttt{Value = (r[n] << 4) | r[n+1]}
+\end{enumerate}
+
+\subsection{Standard Register Pairs}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cccl}
+\toprule
+\textbf{Pair} & \textbf{High Nibble} & \textbf{Low Nibble} & \textbf{Conventional Use} \\
+\midrule
+r0:r1 & r0 & r1 & General purpose (always reads 0x0n) \\
+r2:r3 & r2 & r3 & General purpose / argument pointer \\
+r4:r5 & r4 & r5 & General purpose \\
+r6:r7 & r6 & r7 & General purpose \\
+r8:r9 & r8 & r9 & General purpose \\
+r10:r11 & r10 & r11 & General purpose \\
+r12:r13 & r12 & r13 & Frame pointer (fp) \\
+r14:r15 & r14 & r15 & Stack pointer (sp) \\
+\bottomrule
+\end{tabular}
+\caption{Register Pair Organization}
+\end{table}
+
+\textbf{Note:} Pair r0:r1 always has high nibble = 0 (since r0 is hardwired to zero), limiting it to addresses 0x00-0x0F.
+
+\subsection{Pair Manipulation}
+
+\subsubsection{Loading a Constant Address}
+
+To set a register pair to a specific address (e.g., 0x84):
+
+\begin{lstlisting}
+ORI r14, r0, 0x8    # r14 = 0x8 (high nibble)
+ORI r15, r0, 0x4    # r15 = 0x4 (low nibble)
+                    # r14:r15 now = 0x84
+\end{lstlisting}
+
+\subsubsection{Incrementing a Pointer}
+
+To increment r14:r15 by 1:
+
+\begin{lstlisting}
+ADDI r15, r15, 1    # r15 = r15 + 1
+# If no carry (r15 didn't overflow):
+#   Done - pointer incremented
+# If carry (r15 overflowed from 0xF to 0x0):
+#   Need to increment high nibble:
+ADDI r14, r14, 0    # Add 0 to propagate previous carry
+# Or use ADC if carry is set:
+# ADC r14, r0        # r14 = r14 + 0 + Carry
+\end{lstlisting}
+
+\textbf{Proper implementation with carry handling:}
+
+\begin{lstlisting}
+ADDI r15, r15, 1    # Increment low nibble, sets C if overflow
+# Check if we need to increment high nibble:
+# Option 1: Conditional (if branches supported):
+BCC  no_carry       # Skip if no carry
+ADDI r14, r14, 1    # Increment high nibble
+no_carry:
+    # Continue...
+
+# Option 2: Always add carry (simpler):
+ADC r14, r0, r0     # r14 = r14 + 0 + C (adds carry unconditionally)
+\end{lstlisting}
+
+\subsubsection{Decrementing a Pointer}
+
+To decrement r14:r15 by 1:
+
+\begin{lstlisting}
+ADDI r15, r15, -1   # r15 = r15 - 1, sets C if borrow
+# If borrow (r15 underflowed from 0x0 to 0xF):
+BCC no_borrow       # Skip if no borrow
+ADDI r14, r14, -1   # Decrement high nibble
+no_borrow:
+    # Continue...
+\end{lstlisting}
+
+\subsubsection{Adding an Offset to a Pointer}
+
+To add a multi-nibble offset (e.g., 0x12 = 18 decimal) to r14:r15:
+
+\begin{lstlisting}
+# Add 0x12 to r14:r15
+ADDI r15, r15, 0x2  # Add low nibble (2), sets C if overflow
+ADC  r14, r14, 0x1  # Add high nibble (1) + carry
+                    # Result: r14:r15 = original + 0x12
+\end{lstlisting}
+
+\section{Load/Store Addressing Modes}
+
+\subsection{Base + Offset Addressing}
+
+RISC-4 load/store instructions use base-plus-offset addressing:
+
+\begin{lstlisting}
+LW rd, offset(base)
+SW rs, offset(base)
+\end{lstlisting}
+
+\textbf{Address Calculation:}
+\begin{lstlisting}[language={}]
+Effective Address = reg_pair(base) + sign_extend(offset)
+\end{lstlisting}
+
+Where:
+\begin{itemize}
+    \item \texttt{base}: Even-numbered register (specifies register pair)
+    \item \texttt{offset}: 4-bit signed immediate (-8 to +7)
+    \item \texttt{reg\_pair(base)}: 8-bit value from registers \texttt{base} and \texttt{base+1}
+\end{itemize}
+
+\subsection{Addressing Examples}
+
+\subsubsection{Stack Access}
+
+Assuming stack pointer sp (r14:r15) = 0x90:
+
+\begin{lstlisting}
+LW  r1, 0(r14)      # Load from [0x90 + 0] = 0x90
+LW  r2, 1(r14)      # Load from [0x90 + 1] = 0x91
+LW  r3, -1(r14)     # Load from [0x90 + (-1)] = 0x8F
+SW  r4, 2(r14)      # Store to [0x90 + 2] = 0x92
+\end{lstlisting}
+
+\subsubsection{Array Access}
+
+Accessing elements of an array starting at 0x40:
+
+\begin{lstlisting}
+# Set up base pointer to array start (0x40)
+ORI r10, r0, 0x4    # r10 = 0x4 (high nibble)
+ORI r11, r0, 0x0    # r11 = 0x0 (low nibble)
+                    # r10:r11 = 0x40
+
+# Access array elements
+LW r1, 0(r10)       # array[0] from 0x40
+LW r2, 1(r10)       # array[1] from 0x41
+LW r3, 2(r10)       # array[2] from 0x42
+
+# Access with negative offset (before base)
+LW r4, -1(r10)      # Address 0x3F (before array)
+\end{lstlisting}
+
+\subsubsection{Structure Field Access}
+
+Accessing fields in a structure at address 0x60:
+
+\begin{lstlisting}
+# Structure layout:
+#   +0: status (1 nibble)
+#   +1: value  (1 nibble)
+#   +2: flags  (1 nibble)
+
+ORI r8, r0, 0x6     # r8 = 0x6
+ORI r9, r0, 0x0     # r9 = 0x0
+                    # r8:r9 = 0x60 (structure base)
+
+LW r1, 0(r8)        # Load status from 0x60
+LW r2, 1(r8)        # Load value from 0x61
+LW r3, 2(r8)        # Load flags from 0x62
+
+# Modify a field
+ADDI r2, r2, 1      # Increment value
+SW r2, 1(r8)        # Store back to 0x61
+\end{lstlisting}
+
+\section{Multi-Precision Arithmetic}
+
+Register pairs enable arithmetic on values larger than 4 bits by chaining operations through the Carry flag.
+
+\subsection{8-Bit Addition}
+
+Add two 8-bit values: (r0:r1) = (r2:r3) + (r4:r5)
+
+\begin{lstlisting}
+ADD r1, r3, r5      # Add low nibbles: r1 = r3 + r5
+                    # Sets C if sum >= 16
+ADC r0, r2, r4      # Add high nibbles with carry:
+                    # r0 = r2 + r4 + C
+# Result: r0:r1 = (r2:r3) + (r4:r5)
+\end{lstlisting}
+
+\textbf{Example:}
+\begin{lstlisting}[language={}]
+r2:r3 = 0x9F (159 decimal)
+r4:r5 = 0x23 (35 decimal)
+
+Step 1: r1 = r3 + r5 = 0xF + 0x3 = 0x12 → r1 = 0x2, C = 1
+Step 2: r0 = r2 + r4 + C = 0x9 + 0x2 + 1 = 0xC
+Result: r0:r1 = 0xC2 (194 decimal) ✓
+\end{lstlisting}
+
+\subsection{8-Bit Subtraction}
+
+Subtract two 8-bit values: (r0:r1) = (r2:r3) - (r4:r5)
+
+\begin{lstlisting}
+SUB r1, r3, r5      # Subtract low nibbles: r1 = r3 - r5
+                    # Sets C if borrow occurred
+SBB r0, r2, r4      # Subtract high nibbles with borrow:
+                    # r0 = r2 - r4 - C
+# Result: r0:r1 = (r2:r3) - (r4:r5)
+\end{lstlisting}
+
+\textbf{Example:}
+\begin{lstlisting}[language={}]
+r2:r3 = 0x84 (132 decimal)
+r4:r5 = 0x37 (55 decimal)
+
+Step 1: r1 = r3 - r5 = 0x4 - 0x7 = -3 → r1 = 0xD (13), C = 1 (borrow)
+Step 2: r0 = r2 - r4 - C = 0x8 - 0x3 - 1 = 0x4
+Result: r0:r1 = 0x4D (77 decimal) ✓
+\end{lstlisting}
+
+\subsection{16-Bit Operations}
+
+For 16-bit (4-nibble) values, chain four registers:
+
+\begin{lstlisting}
+# 16-bit addition: (r0:r1:r2:r3) = (r4:r5:r6:r7) + (r8:r9:r10:r11)
+
+ADD r3, r7, r11     # Nibble 0 (LSB)
+ADC r2, r6, r10     # Nibble 1
+ADC r1, r5, r9      # Nibble 2
+ADC r0, r4, r8      # Nibble 3 (MSB)
+# Result: r0:r1:r2:r3 contains 16-bit sum
+\end{lstlisting}
+
+\section{Stack Management}
+
+\subsection{Stack Organization}
+
+The stack grows downward from high memory toward low memory:
+
+\begin{lstlisting}[language={}]
+High Memory (0xFF)
+    ↑
+    | Stack grows downward
+    | (SP decrements on push)
+    ↓
+Low Memory (0x00)
+\end{lstlisting}
+
+\textbf{Convention:}
+\begin{itemize}
+    \item Stack pointer (sp = r14:r15) points to \textbf{next free location}
+    \item Push: Decrement SP, then store
+    \item Pop: Load, then increment SP
+\end{itemize}
+
+\subsection{Push Operation}
+
+Push register r1 onto stack:
+
+\begin{lstlisting}
+# Decrement stack pointer (r14:r15)
+ADDI r15, r15, -1   # Decrement low nibble
+BCC  no_borrow      # If no borrow, skip high nibble decrement
+ADDI r14, r14, -1   # Decrement high nibble due to borrow
+no_borrow:
+
+# Store value
+SW r1, 0(r14)       # mem[sp] = r1
+\end{lstlisting}
+
+\textbf{Optimized (assuming no overflow):}
+\begin{lstlisting}
+ADDI r15, r15, -1   # SP--
+SW   r1, 0(r14)     # Push r1
+# Note: This assumes SP low nibble doesn't underflow
+# Full implementation needs borrow handling
+\end{lstlisting}
+
+\subsection{Pop Operation}
+
+Pop from stack into register r1:
+
+\begin{lstlisting}
+# Load value
+LW r1, 0(r14)       # r1 = mem[sp]
+
+# Increment stack pointer
+ADDI r15, r15, 1    # Increment low nibble
+BCC  no_carry       # If no carry, done
+ADDI r14, r14, 1    # Increment high nibble due to carry
+no_carry:
+\end{lstlisting}
+
+\subsection{Stack Frame Example}
+
+Typical function stack frame layout:
+
+\begin{lstlisting}[language={}]
+High addresses
+    [local variable n]  ← FP + n
+    [local variable 2]  ← FP + 2
+    [local variable 1]  ← FP + 1
+    [saved r12]         ← FP + 0  (old frame pointer)
+    [return address]    ← FP - 1
+    [saved registers]   ← FP - 2, FP - 3, ...
+    [free space]        ← SP (current stack pointer)
+Low addresses
+\end{lstlisting}
+
+\section{Addressing Limitations and Workarounds}
+
+\subsection{Limited Offset Range}
+
+Load/store offsets are only 4 bits signed (-8 to +7). To access beyond this range:
+
+\textbf{Problem:} Access memory at base + 20
+
+\textbf{Solution:} Adjust base pointer
+
+\begin{lstlisting}
+# Want to access: base_ptr + 20 (0x14)
+# But offset limited to -8 to +7
+
+# Option 1: Adjust pointer temporarily
+ADDI r11, r11, 0x4  # Add 0x14 to low nibble (will overflow)
+ADC  r10, r10, 0x1  # Add 0x1 to high nibble + carry
+LW   r1, 0(r10)     # Load from adjusted address
+
+# Restore pointer if needed
+ADDI r11, r11, -0x4
+SBB  r10, r10, 0x1
+
+# Option 2: Use separate pointer
+ORI r8, r0, <high>  # Calculate new base
+ORI r9, r0, <low>   # = original + 20
+LW  r1, 0(r8)       # Load from offset address
+\end{lstlisting}
+
+\subsection{Pointer Arithmetic Complexity}
+
+Multi-nibble pointer arithmetic requires careful carry handling:
+
+\begin{lstlisting}
+# Add 0x2F to pointer r14:r15
+
+# Naive (WRONG - ignores carry):
+ADDI r15, r15, 0xF  # Low nibble
+ADDI r14, r14, 0x2  # High nibble (WRONG - missed carry)
+
+# Correct (handles carry):
+ADDI r15, r15, 0xF  # Low nibble, may set carry
+ADC  r14, r14, 0x2  # High nibble + any carry from low
+\end{lstlisting}
+
+\subsection{r0:r1 Pair Limitation}
+
+Since r0 is hardwired to zero, pair r0:r1 can only address 0x00-0x0F:
+
+\begin{lstlisting}
+# r0:r1 can only form addresses 0x00 through 0x0F
+ORI r1, r0, 0x7     # r1 = 0x7
+LW  r2, 0(r0)       # Loads from 0x07 (since r0 = 0)
+
+# Cannot use r0:r1 for addresses >= 0x10
+# Must use a different register pair
+\end{lstlisting}
+
+\textbf{Recommendation:} Avoid using r0 as base register for load/store instructions.
+
+\section{Design Rationale}
+
+\subsection{Why Register Pairs?}
+
+\textbf{Alternatives Considered:}
+
+1. \textbf{Dedicated address registers:} Add special 8-bit address registers
+   \begin{itemize}
+       \item CONS: Increases ISA complexity, requires new instructions
+       \item CONS: Breaks load/store architecture simplicity
+   \end{itemize}
+
+2. \textbf{Implicit addressing:} Use accumulator-style addressing
+   \begin{itemize}
+       \item CONS: Not RISC (accumulator architecture)
+       \item CONS: Limits parallelism and compiler optimization
+   \end{itemize}
+
+3. \textbf{Register pairs (chosen):}
+   \begin{itemize}
+       \item PROS: Uses existing general-purpose registers
+       \item PROS: Maintains RISC load/store simplicity
+       \item PROS: Enables multi-precision arithmetic with same mechanism
+       \item CONS: Requires even-numbered base registers
+   \end{itemize}
+
+\subsection{Why Even-Numbered Base Registers?}
+
+\textbf{Hardware Simplification:}
+\begin{itemize}
+    \item Base register [7:4] determines pair: \texttt{(base, base+1)}
+    \item If odd base allowed: Would require \texttt{(base, base+1)} OR \texttt{(base-1, base)}
+    \item Alignment simplifies decode logic and register file access
+\end{itemize}
+
+\textbf{Software Impact:}
+\begin{itemize}
+    \item 8 usable pairs (r0:r1 through r14:r15)
+    \item Sufficient for: SP, FP, and 6 general-purpose pointers
+    \item Compiler must track register alignment
+\end{itemize}
+
 % ============================================================
-% CHAPTER 5: CALLING CONVENTION
+% CHAPTER 10: CALLING CONVENTION
 % ============================================================
 \chapter{Calling Convention}
 
-\section{Function Prologue}
-Managing the 8-bit Stack Pointer (\texttt{sp = r14:r15}) requires careful handling of carries when allocating stack frames.
+\section{Overview}
+
+A calling convention defines the rules for how functions call each other, pass parameters, preserve state, and return values. RISC-4's calling convention balances the constraints of a 4-bit architecture with the need for practical, efficient function calls.
+
+\textbf{Key Challenges:}
+\begin{itemize}
+    \item Limited register count (16 registers, but r0 is zero)
+    \item 4-bit values limit parameter and return value sizes
+    \item 8-bit stack pointer requires multi-instruction manipulation
+    \item No dedicated link register or call instruction (must use software convention)
+\end{itemize}
+
+\section{Register Usage Convention}
+
+\subsection{Register Roles}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{cllp{5cm}}
+\toprule
+\textbf{Register} & \textbf{Name} & \textbf{Role} & \textbf{Preserved?} \\
+\midrule
+r0 & zero & Constant zero & N/A (always zero) \\
+r1 & ra & Return address & Caller saves \\
+r2 & a0 & Argument 0 / Return value & No \\
+r3 & a1 & Argument 1 & No \\
+r4 & a2 & Argument 2 & No \\
+r5 & a3 & Argument 3 & No \\
+r6 & v0 & Return value (alternate) & No \\
+r7 & t0 & Temporary & No (caller-saved) \\
+r8 & t1 & Temporary & No (caller-saved) \\
+r9 & t2 & Temporary & No (caller-saved) \\
+r10 & s0 & Saved register & Yes (callee-saved) \\
+r11 & s1 & Saved register & Yes (callee-saved) \\
+r12 & s2/fp\_hi & Saved / Frame pointer high & Yes (callee-saved) \\
+r13 & s3/fp\_lo & Saved / Frame pointer low & Yes (callee-saved) \\
+r14 & sp\_hi & Stack pointer high & Yes (callee-saved) \\
+r15 & sp\_lo & Stack pointer low & Yes (callee-saved) \\
+\bottomrule
+\end{tabular}
+\caption{Register Calling Convention}
+\end{table}
+
+\subsection{Caller-Saved vs Callee-Saved}
+
+\textbf{Caller-Saved Registers (r1-r9):}
+\begin{itemize}
+    \item Function may freely modify these
+    \item Caller must save before calling if values are needed afterward
+    \item Used for: arguments, return values, temporary computations
+\end{itemize}
+
+\textbf{Callee-Saved Registers (r10-r15):}
+\begin{itemize}
+    \item Function must preserve these if used
+    \item Callee must save on entry and restore on exit
+    \item Used for: local variables that must survive across function calls
+\end{itemize}
+
+\section{Parameter Passing}
+
+\subsection{Basic Parameter Passing (1-4 nibbles)}
+
+Parameters are passed in registers r2-r5:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cl}
+\toprule
+\textbf{Register} & \textbf{Parameter} \\
+\midrule
+r2 (a0) & First argument (or bits [3:0] of multi-nibble value) \\
+r3 (a1) & Second argument (or bits [7:4] of multi-nibble value) \\
+r4 (a2) & Third argument \\
+r5 (a3) & Fourth argument \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Example: Single 4-bit parameter}
+\begin{lstlisting}
+# Call: result = add_one(value)
+# Input: r2 = value (4-bit)
+# Output: r2 = result (4-bit)
+
+ORI  r2, r0, 0x5    # Set argument: a0 = 5
+# Save r1 if needed (return address)
+SW   r1, -1(r14)    # Save return address to stack
+ORI  r1, r0, <ret_addr_high>  # Load return address
+ORI  r1, r0, <ret_addr_low>   # (simplified; real implementation uses computed address)
+J    add_one        # Call function
+# Return here
+\end{lstlisting}
+
+\subsection{Multi-Nibble Parameters}
+
+For 8-bit (2-nibble) parameters, use register pairs:
 
 \begin{lstlisting}
-function:
-    # Allocate 4 nibbles (Decrement SP by 4)
-    # Since we lack a 16-bit SUB, we do this in steps:
-    ADDI r15, r15, -4    # Subtract 4 from low nibble
-    # Note: A real implementation must check for borrow here
-    # and decrement r14 if needed.
+# Call: result = multiply_by_two(value)
+# Input: r2:r3 = value (8-bit)
+# Output: r2:r3 = result (8-bit)
 
-    # Save Return Address (r1) to [sp + 3]
-    SW   r1, 3(r14)      # Store r1 at address (r14:r15 + 3)
-
-    # Save Frame Pointer (r12) to [sp + 2]
-    SW   r12, 2(r14)
-
-    # Move SP to FP (fp = sp)
-    ADD  r13, r15, r0    # fp_low = sp_low
-    ADD  r12, r14, r0    # fp_high = sp_high
+ORI  r2, r0, 0x1    # High nibble = 0x1
+ORI  r3, r0, 0x7    # Low nibble = 0x7
+                    # r2:r3 = 0x17 (23 decimal)
+# Call multiply_by_two
+# r2:r3 = 0x2E (46 decimal) on return
 \end{lstlisting}
+
+\subsection{More Than 4 Parameters}
+
+When more than 4 nibble parameters are needed, use the stack:
+
+\begin{lstlisting}
+# Call: result = sum_six(a, b, c, d, e, f)
+# First 4 in registers: r2=a, r3=b, r4=c, r5=d
+# Remaining 2 on stack: e, f
+
+# Caller:
+ADDI r15, r15, -2   # Allocate stack space for 2 params
+BCC  no_carry1
+ADDI r14, r14, -1   # Handle carry
+no_carry1:
+
+SW   r6, 0(r14)     # Push e (5th parameter)
+SW   r7, 1(r14)     # Push f (6th parameter)
+
+ORI  r2, r0, <a>    # Load first 4 params
+ORI  r3, r0, <b>
+ORI  r4, r0, <c>
+ORI  r5, r0, <d>
+
+# Call function
+# ...
+
+# Callee (sum_six):
+sum_six:
+    # Parameters: r2, r3, r4, r5, [sp+0], [sp+1]
+    ADD  r2, r2, r3     # a + b
+    ADD  r2, r2, r4     # + c
+    ADD  r2, r2, r5     # + d
+    LW   r7, 0(r14)     # Load e from stack
+    ADD  r2, r2, r7     # + e
+    LW   r7, 1(r14)     # Load f from stack
+    ADD  r2, r2, r7     # + f
+    # Result in r2
+    # Return...
+\end{lstlisting}
+
+\section{Return Values}
+
+\subsection{Single Nibble Return}
+
+Return values are placed in r2 (a0):
+
+\begin{lstlisting}
+# Function: returns 4-bit value
+get_status:
+    # ... computation ...
+    ORI r2, r0, 0x5     # Return value = 5
+    # Jump to return address (in r1)
+    # (Pseudo-instruction: RET would be J r1, but RISC-4 v0.1 lacks indirect jump)
+\end{lstlisting}
+
+\textbf{Note:} RISC-4 v0.1 lacks indirect jump, so return requires storing r1 in a known location or using a software convention.
+
+\subsection{Multi-Nibble Return}
+
+For 8-bit return values, use r2:r3:
+
+\begin{lstlisting}
+# Function: returns 8-bit value
+compute_large:
+    # ... computation ...
+    ORI r2, r0, 0xA     # High nibble = 0xA
+    ORI r3, r0, 0x7     # Low nibble = 0x7
+                        # Return value = 0xA7 (167 decimal)
+    # Return to caller
+\end{lstlisting}
+
+\subsection{Returning Multiple Values}
+
+For multiple return values (unusual but possible):
+
+\begin{lstlisting}
+# Function: returns quotient and remainder
+# Output: r2 = quotient, r3 = remainder
+divide:
+    # ... division logic ...
+    ORI r2, r0, 0x5     # quotient = 5
+    ORI r3, r0, 0x2     # remainder = 2
+    # Return
+\end{lstlisting}
+
+\section{Stack Frame Structure}
+
+\subsection{Stack Frame Layout}
+
+A typical stack frame contains:
+
+\begin{lstlisting}[language={}]
+High addresses
+    [Caller's frame]
+    [................]
+    [Argument n]        ← FP + n (arguments beyond 4)
+    [Argument 5]        ← FP + 5
+    [Return address]    ← FP + 4
+    [Saved FP high]     ← FP + 3
+    [Saved FP low]      ← FP + 2
+    [Saved r10]         ← FP + 1
+    [Saved r11]         ← FP + 0 (FP points here)
+    [Local var 0]       ← FP - 1
+    [Local var 1]       ← FP - 2
+    [Temp storage]      ← SP (current stack pointer)
+Low addresses
+\end{lstlisting}
+
+\subsection{Frame Pointer (FP)}
+
+The frame pointer (r12:r13) provides a stable reference point for accessing:
+\begin{itemize}
+    \item Local variables (negative offsets from FP)
+    \item Saved registers (small positive offsets from FP)
+    \item Stack parameters (larger positive offsets from FP)
+\end{itemize}
+
+Without FP, all references would be relative to SP, which changes during the function.
+
+\section{Function Prologue and Epilogue}
+
+\subsection{Complete Function Prologue}
+
+The prologue sets up the stack frame:
+
+\begin{lstlisting}
+function_name:
+    # Step 1: Allocate stack space
+    # Allocate N nibbles (e.g., 6 nibbles for saved regs + locals)
+    ADDI r15, r15, -6   # Decrement SP low nibble
+    BCC  no_borrow1     # Check for borrow
+    ADDI r14, r14, -1   # Decrement SP high nibble
+no_borrow1:
+
+    # Step 2: Save callee-saved registers
+    SW   r10, 0(r14)    # Save r10 at [sp+0]
+    SW   r11, 1(r14)    # Save r11 at [sp+1]
+
+    # Step 3: Save old frame pointer
+    SW   r12, 2(r14)    # Save FP high at [sp+2]
+    SW   r13, 3(r14)    # Save FP low at [sp+3]
+
+    # Step 4: Save return address
+    SW   r1, 4(r14)     # Save RA at [sp+4]
+
+    # Step 5: Set new frame pointer
+    # FP = SP + 2 (points to saved r11)
+    ADD  r13, r15, r0   # FP_lo = SP_lo
+    ADD  r12, r14, r0   # FP_hi = SP_hi
+    ADDI r13, r13, 2    # FP += 2
+    BCC  no_carry1
+    ADDI r12, r12, 1    # Handle carry
+no_carry1:
+
+    # Function body starts here
+    # Local variables at [FP-1], [FP-2], etc.
+\end{lstlisting}
+
+\subsection{Complete Function Epilogue}
+
+The epilogue tears down the stack frame and returns:
+
+\begin{lstlisting}
+    # Function body ends here
+
+    # Step 1: Restore callee-saved registers
+    LW   r10, 0(r14)    # Restore r10
+    LW   r11, 1(r14)    # Restore r11
+
+    # Step 2: Restore old frame pointer
+    LW   r12, 2(r14)    # Restore FP high
+    LW   r13, 3(r14)    # Restore FP low
+
+    # Step 3: Load return address
+    LW   r1, 4(r14)     # Load RA into r1
+
+    # Step 4: Deallocate stack space
+    ADDI r15, r15, 6    # Increment SP low nibble by 6
+    BCC  no_carry2      # Check for carry
+    ADDI r14, r14, 1    # Increment SP high nibble
+no_carry2:
+
+    # Step 5: Return (pseudo-instruction)
+    # RISC-4 v0.1 lacks indirect jump, so this is simplified
+    # In real implementation, r1 would contain return address
+    # and we'd need a software-managed return mechanism
+    # RET  (pseudo: J r1, not supported in v0.1)
+\end{lstlisting}
+
+\section{Complete Function Example}
+
+\subsection{Leaf Function (No Calls)}
+
+A leaf function doesn't call other functions, so it doesn't need to save RA:
+
+\begin{lstlisting}
+# Function: add_three(a, b, c) -> a + b + c
+# Input: r2 = a, r3 = b, r4 = c
+# Output: r2 = result
+
+add_three:
+    # No prologue needed (leaf function, no locals)
+    
+    # Function body
+    ADD r2, r2, r3      # r2 = a + b
+    ADD r2, r2, r4      # r2 = a + b + c
+    
+    # No epilogue needed
+    # Return (assuming return mechanism exists)
+    RET                 # Pseudo-instruction
+\end{lstlisting}
+
+\subsection{Non-Leaf Function (Makes Calls)}
+
+A function that calls other functions must save RA:
+
+\begin{lstlisting}
+# Function: square_sum(a, b) -> square(a + b)
+# Calls: square(x)
+
+square_sum:
+    # Prologue
+    ADDI r15, r15, -3   # Allocate 3 nibbles
+    BCC  no_borrow_p
+    ADDI r14, r14, -1
+no_borrow_p:
+    
+    SW   r1, 0(r14)     # Save return address
+    SW   r10, 1(r14)    # Save r10 (we'll use it)
+    
+    # Function body
+    ADD  r10, r2, r3    # r10 = a + b (save before calling)
+    
+    # Call square(r10)
+    ADD  r2, r10, r0    # Move argument to r2
+    # Save our RA before calling
+    # (Our RA is already on stack)
+    
+    # Pseudo-call to square
+    # In real implementation, this would be:
+    # Store current PC+1 in r1
+    # J square
+    
+    # After return from square, r2 = result
+    
+    # Epilogue
+    LW   r10, 1(r14)    # Restore r10
+    LW   r1, 0(r14)     # Restore return address
+    
+    ADDI r15, r15, 3    # Deallocate
+    BCC  no_carry_e
+    ADDI r14, r14, 1
+no_carry_e:
+    
+    RET                 # Return
+\end{lstlisting}
+
+\subsection{Recursive Function}
+
+\begin{lstlisting}
+# Function: factorial(n) -> n!
+# Input: r2 = n
+# Output: r2 = n!
+
+factorial:
+    # Prologue
+    ADDI r15, r15, -4   # Allocate space
+    BCC  no_borrow_fp
+    ADDI r14, r14, -1
+no_borrow_fp:
+    
+    SW   r1, 0(r14)     # Save RA
+    SW   r10, 1(r14)    # Save r10 (for n)
+    SW   r2, 2(r14)     # Save n
+    
+    # Base case: if (n <= 1) return 1
+    SLTI r7, r2, 2      # r7 = (n < 2) ? 1 : 0
+    BEQ  base_case      # If r7 == 0 (n >= 2), skip to recursive
+    
+    # Base case: return 1
+    ORI  r2, r0, 1      # result = 1
+    J    factorial_return
+    
+base_case:
+    # Recursive case: return n * factorial(n-1)
+    ADD  r10, r2, r0    # Save n in r10
+    
+    ADDI r2, r2, -1     # r2 = n - 1
+    # Recursive call to factorial(r2)
+    # (Pseudo-call, would need real call mechanism)
+    
+    # After return, r2 = factorial(n-1)
+    # Multiply by n (in r10)
+    # For 4-bit, multiplication is complex, simplified here:
+    # result = n * factorial(n-1)
+    # (Assume multiply routine exists)
+    
+factorial_return:
+    # Epilogue
+    LW   r10, 1(r14)    # Restore r10
+    LW   r1, 0(r14)     # Restore RA
+    
+    ADDI r15, r15, 4    # Deallocate
+    BCC  no_carry_fe
+    ADDI r14, r14, 1
+no_carry_fe:
+    
+    RET
+\end{lstlisting}
+
+\section{Advanced Topics}
+
+\subsection{Accessing Stack Parameters}
+
+When more than 4 parameters are passed:
+
+\begin{lstlisting}
+# Function: sum_six(a, b, c, d, e, f)
+# Params: r2=a, r3=b, r4=c, r5=d, stack[sp+4]=e, stack[sp+5]=f
+
+sum_six:
+    # After prologue, stack layout:
+    # [sp+0] = saved registers
+    # [sp+1] = saved FP
+    # [sp+2] = saved FP
+    # [sp+3] = saved RA
+    # [sp+4] = caller's stack param: e
+    # [sp+5] = caller's stack param: f
+    
+    # To access e and f, need to account for our frame
+    # FP points to saved r11, so:
+    # [FP+3] = saved RA
+    # [FP+4] = parameter e
+    # [FP+5] = parameter f
+    
+    ADD  r2, r2, r3     # a + b
+    ADD  r2, r2, r4     # + c
+    ADD  r2, r2, r5     # + d
+    LW   r7, 4(r12)     # Load e from [FP+4]
+    ADD  r2, r2, r7     # + e
+    LW   r7, 5(r12)     # Load f from [FP+5]
+    ADD  r2, r2, r7     # + f
+    # Result in r2
+\end{lstlisting}
+
+\subsection{Variable-Length Argument Lists}
+
+For functions like printf with variable arguments:
+
+\begin{lstlisting}
+# Convention: First parameter is count, rest are values
+# varargs(count, arg0, arg1, ...)
+
+varargs:
+    # r2 = count
+    # r3 = arg0
+    # r4 = arg1
+    # r5 = arg2
+    # [FP+4] = arg3
+    # [FP+5] = arg4
+    # ...
+    
+    # Loop through stack parameters if count > 4
+    SLTI r7, r2, 5      # if (count < 5), no stack params
+    BNE  no_stack
+    
+    # Process stack parameters
+    # Calculate number of stack params: count - 4
+    ADDI r6, r2, -4     # r6 = count - 4
+    ORI  r8, r0, 4      # r8 = offset (starting at FP+4)
+    
+loop:
+    LW   r9, 0(r12)     # Load param at [FP + r8]
+                        # (Simplified: would need to add r8 to r12:r13)
+    # Process r9...
+    
+    ADDI r8, r8, 1      # offset++
+    ADDI r6, r6, -1     # remaining--
+    BNE  loop           # Continue if more params
+    
+no_stack:
+    # Done processing
+\end{lstlisting}
+
+\subsection{Nested Function Calls}
+
+Each function call adds a new frame:
+
+\begin{lstlisting}
+# Call chain: main -> func_a -> func_b
+
+main:
+    # main's frame
+    # SP = 0xF0, FP = 0xF0
+    # Call func_a
+    # ...
+
+func_a:
+    # Prologue creates frame
+    # SP = 0xE8, FP = 0xE8
+    # Saved registers, RA point to main
+    
+    # Call func_b
+    # ...
+
+func_b:
+    # Prologue creates frame
+    # SP = 0xE0, FP = 0xE0
+    # Saved registers, RA point to func_a
+    
+    # Work...
+    
+    # Epilogue restores func_a's frame
+    # SP back to 0xE8
+    # Return to func_a
+    
+    # func_a epilogue restores main's frame
+    # SP back to 0xF0
+    # Return to main
+\end{lstlisting}
+
+\section{Limitations and Workarounds}
+
+\subsection{No Indirect Jump (v0.1)}
+
+RISC-4 v0.1 lacks \texttt{JALR} (jump and link register), making returns difficult.
+
+\textbf{Workaround Options:}
+
+\textbf{Option 1: Fixed Return Addresses}
+\begin{lstlisting}
+# Caller knows where it will return to
+call_site_1:
+    ORI  r1, r0, <ret1_high>
+    ORI  r1, r0, <ret1_low>  # r1 = address of ret1
+    J    function
+ret1:
+    # Returned here
+    
+function:
+    # Do work...
+    # Jump to address in r1 (but can't: no JALR)
+    # Instead, jump to fixed return trampoline
+\end{lstlisting}
+
+\textbf{Option 2: Return Trampoline}
+\begin{lstlisting}
+# Shared return mechanism at fixed address
+return_trampoline:
+    # Load RA from stack
+    LW   r1, -1(r14)     # Assuming RA is at [SP-1]
+    # Dispatch based on r1 value
+    # (Requires jump table or series of comparisons)
+\end{lstlisting}
+
+\textbf{Recommendation:} For v1.0, add \texttt{JALR rd, rs} instruction:
+\begin{itemize}
+    \item \texttt{rd ← PC + 1} (save return address)
+    \item \texttt{PC ← rs} (jump to register value)
+\end{itemize}
+
+\subsection{Limited Parameter Count}
+
+Only 4 register parameters forces stack usage for larger signatures.
+
+\textbf{Workaround:} Pass pointer to structure:
+
+\begin{lstlisting}
+# Instead of: func(a, b, c, d, e, f, g, h)
+# Use: func(params_ptr)
+
+# Caller:
+# Build parameter structure at 0x80:
+ORI  r10, r0, 0x8
+ORI  r11, r0, 0x0       # r10:r11 = 0x80
+
+SW   r2, 0(r10)         # params[0] = a
+SW   r3, 1(r10)         # params[1] = b
+# ... etc
+
+# Pass pointer
+ADD  r2, r10, r0        # Only need low byte if < 16 params
+J    func
+
+# Callee:
+func:
+    # r2 = params pointer (low byte)
+    # Reconstruct full pointer (assuming high byte is 0x8)
+    ORI  r10, r0, 0x8
+    ADD  r11, r2, r0     # r10:r11 = params pointer
+    
+    LW   r3, 0(r10)      # Load params[0]
+    LW   r4, 1(r10)      # Load params[1]
+    # ...
+\end{lstlisting}
+
+\section{Performance Considerations}
+
+\subsection{Call Overhead}
+
+Typical function call overhead:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lc}
+\toprule
+\textbf{Operation} & \textbf{Cycles} \\
+\midrule
+Allocate stack (with carry handling) & 2-4 \\
+Save registers (4 registers) & 4 \\
+Save FP (2 nibbles) & 2 \\
+Save RA & 1 \\
+Update FP (with carry handling) & 2-4 \\
+\midrule
+\textbf{Total Prologue} & \textbf{11-15 cycles} \\
+\midrule
+Restore registers (4 registers) & 4 \\
+Restore FP & 2 \\
+Restore RA & 1 \\
+Deallocate stack & 2-4 \\
+Return (future JALR) & 1 \\
+\midrule
+\textbf{Total Epilogue} & \textbf{10-12 cycles} \\
+\midrule
+\textbf{Total Call Overhead} & \textbf{21-27 cycles} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Optimization Strategies}
+
+\textbf{1. Leaf Function Optimization}
+\begin{itemize}
+    \item Don't save RA if function doesn't call others
+    \item Don't save callee-saved registers if not used
+    \item Reduces overhead to 0 cycles for trivial functions
+\end{itemize}
+
+\textbf{2. Inline Small Functions}
+\begin{itemize}
+    \item If function body < 10 instructions, consider inlining
+    \item Eliminates call overhead entirely
+    \item Trade-off: code size increases
+\end{itemize}
+
+\textbf{3. Tail Call Optimization}
+\begin{lstlisting}
+# Instead of:
+func_a:
+    # Work...
+    # Call func_b
+    # Epilogue
+    # Return
+
+# Use tail call:
+func_a:
+    # Work...
+    # Setup args for func_b
+    # Epilogue (restore our frame)
+    # Jump directly to func_b (not call)
+    J func_b    # func_b returns directly to our caller
+\end{lstlisting}
+
+\textbf{4. Register Allocation}
+\begin{itemize}
+    \item Prefer caller-saved registers (r7-r9) for temporaries
+    \item Only use callee-saved registers (r10-r11) when values must survive calls
+    \item Reduces save/restore overhead
+\end{itemize}
+
+\section{Future Enhancements}
+
+\subsection{Proposed v1.0 Additions}
+
+\textbf{1. JALR Instruction}
+\begin{lstlisting}
+JALR rd, rs    # rd <- PC+1, PC <- rs
+\end{lstlisting}
+Enables true function calls with return addresses.
+
+\textbf{2. Hardware Stack Support}
+\begin{itemize}
+    \item Dedicated SP register (auto-increment/decrement)
+    \item PUSH/POP instructions
+    \item Simplifies stack management
+\end{itemize}
+
+\textbf{3. Link Register Convention}
+\begin{itemize}
+    \item Use r1 as dedicated link register
+    \item JAL instruction: \texttt{r1 ← PC+1, PC ← target}
+    \item RET instruction: \texttt{PC ← r1}
+\end{itemize}
+
+\section{Design Rationale}
+
+\subsection{Why This Convention?}
+
+\textbf{Register Allocation:}
+\begin{itemize}
+    \item 4 argument registers matches typical function signatures
+    \item 3 temporaries (t0-t2) sufficient for most expressions
+    \item 2 saved registers (s0-s1) for critical locals
+    \item Dedicated FP and SP essential for stack management
+\end{itemize}
+
+\textbf{Stack Frame Design:}
+\begin{itemize}
+    \item FP provides stable reference despite SP changes
+    \item Saved RA at predictable offset enables debuggers
+    \item Compatible with C calling conventions (adapted)
+\end{itemize}
+
+\textbf{Caller vs Callee Saved:}
+\begin{itemize}
+    \item Caller-saved for values not needed after call (avoids unnecessary saves)
+    \item Callee-saved for long-lived locals (saves once, use many times)
+    \item Balance minimizes total save/restore operations
+\end{itemize}
+
 
 % ============================================================
 % APPENDICES
@@ -700,10 +2914,377 @@ function:
 \chapter{Assembly Language Syntax}
 
 \section{Instruction Format}
+
+RISC-4 assembly follows a simple, consistent syntax:
+
 \begin{lstlisting}
-label: mnemonic operands  # comment
+[label:] mnemonic [operands]  [# comment]
 \end{lstlisting}
 
+\textbf{Components:}
+\begin{itemize}
+    \item \textbf{label:} Optional identifier followed by colon
+    \item \textbf{mnemonic:} Instruction name (ADD, SUB, LW, etc.)
+    \item \textbf{operands:} Comma-separated registers, immediates, or addresses
+    \item \textbf{comment:} Optional text following \texttt{\#} character
+\end{itemize}
+
+\section{Operand Types}
+
+\subsection{Registers}
+
+Registers are specified by name or number:
+
+\begin{lstlisting}
+# By number:
+ADD r1, r2, r3
+
+# By conventional name:
+ADD ra, a0, a1      # Equivalent to above
+
+# Zero register:
+ADD r4, r0, r5      # r4 = 0 + r5 (copy r5 to r4)
+ORI r1, zero, 0x5   # r1 = 5 (load immediate)
+\end{lstlisting}
+
+\subsection{Immediate Values}
+
+Immediates can be decimal, hexadecimal, or binary:
+
+\begin{lstlisting}
+ADDI r1, r2, 5      # Decimal: 5
+ADDI r1, r2, 0x5    # Hexadecimal: 5
+ADDI r1, r2, 0b0101 # Binary: 5
+
+ADDI r3, r3, -1     # Negative immediate (two's complement)
+ORI  r4, r0, 0xF    # Hexadecimal: 15
+\end{lstlisting}
+
+\subsection{Memory Operands}
+
+Load/store instructions use offset(base) syntax:
+
+\begin{lstlisting}
+LW  r1, 0(r14)      # Load from [r14:r15 + 0]
+SW  r2, 4(r14)      # Store to [r14:r15 + 4]
+LW  r3, -1(r12)     # Load from [r12:r13 - 1]
+
+# Base must be even-numbered register (pair)
+LW  r1, 0(r14)      # Valid: r14 is even
+LW  r1, 0(r15)      # INVALID: r15 is odd
+\end{lstlisting}
+
+\subsection{Branch Targets}
+
+Branches use labels or offsets:
+
+\begin{lstlisting}
+loop:
+    ADDI r1, r1, 1
+    SLTI r2, r1, 10
+    BNE  loop           # Branch to label
+
+    BEQ  +5             # Branch forward 5 instructions (rare)
+    BCS  -3             # Branch backward 3 instructions (rare)
+\end{lstlisting}
+
+\subsection{Jump Targets}
+
+Jumps use labels or absolute addresses:
+
+\begin{lstlisting}
+    J start             # Jump to label
+    J 0x100             # Jump to absolute address (rare)
+
+start:
+    # Program begins here
+\end{lstlisting}
+
+\section{Pseudo-Instructions}
+
+Assemblers often provide pseudo-instructions that expand to one or more real instructions:
+
+\subsection{NOP - No Operation}
+
+\begin{lstlisting}
+NOP                 # Pseudo-instruction
+# Expands to:
+ADD r0, r0, r0      # Does nothing (writes to r0 are ignored)
+\end{lstlisting}
+
+\subsection{MOV - Move Register}
+
+\begin{lstlisting}
+MOV rd, rs          # Pseudo-instruction: rd = rs
+# Expands to:
+ADD rd, rs, r0      # rd = rs + 0
+# Or:
+OR  rd, rs, r0      # rd = rs | 0
+\end{lstlisting}
+
+\subsection{LI - Load Immediate}
+
+\begin{lstlisting}
+LI rd, imm4         # Pseudo-instruction: rd = immediate
+# Expands to:
+ORI rd, r0, imm4    # rd = 0 | imm4
+\end{lstlisting}
+
+\subsection{NOT - Bitwise NOT}
+
+\begin{lstlisting}
+NOT rd, rs          # Pseudo-instruction: rd = ~rs
+# Expands to:
+XOR rd, rs, 0xF     # rd = rs ^ 0b1111 (flip all bits)
+\end{lstlisting}
+
+\subsection{CLR - Clear Register}
+
+\begin{lstlisting}
+CLR rd              # Pseudo-instruction: rd = 0
+# Expands to:
+XOR rd, rd, rd      # rd = rd ^ rd = 0
+# Or:
+AND rd, rd, r0      # rd = rd & 0 = 0
+\end{lstlisting}
+
+\subsection{INC/DEC - Increment/Decrement}
+
+\begin{lstlisting}
+INC rd              # Pseudo-instruction: rd++
+# Expands to:
+ADDI rd, rd, 1
+
+DEC rd              # Pseudo-instruction: rd--
+# Expands to:
+ADDI rd, rd, -1
+\end{lstlisting}
+
+\subsection{RET - Return from Function}
+
+\begin{lstlisting}
+RET                 # Pseudo-instruction: return to caller
+# In v0.1 (no JALR):
+# Requires software convention (see Chapter 10)
+
+# In future v1.0 with JALR:
+# Expands to:
+JALR r0, r1         # PC = r1, r0 = PC+1 (r0 write ignored)
+\end{lstlisting}
+
+\subsection{PUSH/POP - Stack Operations}
+
+\begin{lstlisting}
+PUSH rs             # Pseudo-instruction: push rs to stack
+# Expands to:
+ADDI r15, r15, -1   # SP--
+SW   rs, 0(r14)     # mem[SP] = rs
+# Note: Simplified; real implementation needs carry handling
+
+POP rd              # Pseudo-instruction: pop from stack to rd
+# Expands to:
+LW   rd, 0(r14)     # rd = mem[SP]
+ADDI r15, r15, 1    # SP++
+# Note: Simplified; real implementation needs carry handling
+\end{lstlisting}
+
+\subsection{BLT/BGE/BGT/BLE - Signed Comparison Branches}
+
+\begin{lstlisting}
+BLT rs, rt, label   # Pseudo: branch if rs < rt (signed)
+# Expands to:
+SLT  r7, rs, rt     # r7 = (rs < rt) ? 1 : 0
+BNE  r7, label      # Branch if r7 != 0
+
+BGE rs, rt, label   # Pseudo: branch if rs >= rt (signed)
+# Expands to:
+SLT  r7, rs, rt
+BEQ  r7, label      # Branch if r7 == 0
+
+BGT rs, rt, label   # Pseudo: branch if rs > rt (signed)
+# Expands to:
+SLT  r7, rt, rs     # r7 = (rt < rs) ? 1 : 0
+BNE  r7, label
+
+BLE rs, rt, label   # Pseudo: branch if rs <= rt (signed)
+# Expands to:
+SLT  r7, rt, rs
+BEQ  r7, label
+\end{lstlisting}
+
+\section{Assembler Directives}
+
+Common assembler directives for controlling assembly:
+
+\subsection{.org - Set Origin Address}
+
+\begin{lstlisting}
+    .org 0x000      # Start assembling at address 0x000
+start:
+    ORI r14, r0, 0xF
+    ORI r15, r0, 0xF    # Initialize SP = 0xFF
+\end{lstlisting}
+
+\subsection{.data - Data Section}
+
+\begin{lstlisting}
+    .data           # Switch to data section
+array:
+    .nibble 0x1, 0x2, 0x3, 0x4  # Define nibble array
+value:
+    .nibble 0xA     # Single nibble
+
+    .text           # Switch back to code section
+    LW r1, array    # Load first element
+\end{lstlisting}
+
+\subsection{.equ - Define Constant}
+
+\begin{lstlisting}
+    .equ STACK_TOP, 0xFF
+    .equ MAX_COUNT, 10
+
+    ORI r14, r0, (STACK_TOP >> 4)
+    ORI r15, r0, (STACK_TOP & 0xF)
+\end{lstlisting}
+
+\subsection{.align - Alignment}
+
+\begin{lstlisting}
+    .align 4        # Align to next 4-nibble boundary
+function:
+    ADD r1, r2, r3
+\end{lstlisting}
+
+\section{Commenting Conventions}
+
+\subsection{Inline Comments}
+
+\begin{lstlisting}
+ADD r1, r2, r3      # r1 = r2 + r3
+ADDI r4, r4, 1      # Increment counter
+\end{lstlisting}
+
+\subsection{Block Comments}
+
+\begin{lstlisting}
+#===============================================
+# Function: multiply
+# Description: Multiply two 4-bit numbers
+# Input: r2 = multiplicand, r3 = multiplier
+# Output: r2:r3 = 8-bit product
+# Clobbers: r4, r5, r6
+#===============================================
+multiply:
+    # Implementation...
+\end{lstlisting}
+
+\subsection{Section Headers}
+
+\begin{lstlisting}
+#-----------------------------------------------
+# Initialization
+#-----------------------------------------------
+init:
+    ORI r14, r0, 0xF    # Set up stack pointer
+    ORI r15, r0, 0xF
+
+#-----------------------------------------------
+# Main Loop
+#-----------------------------------------------
+main_loop:
+    # Loop body...
+\end{lstlisting}
+
+\section{Register Naming Conventions}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{cll}
+\toprule
+\textbf{Number} & \textbf{Name} & \textbf{Usage} \\
+\midrule
+r0 & zero & Constant zero \\
+r1 & ra & Return address \\
+r2 & a0 & Argument 0 / Return value \\
+r3 & a1 & Argument 1 \\
+r4 & a2 & Argument 2 \\
+r5 & a3 & Argument 3 \\
+r6 & v0 & Return value (alternate) \\
+r7 & t0 & Temporary 0 \\
+r8 & t1 & Temporary 1 \\
+r9 & t2 & Temporary 2 \\
+r10 & s0 & Saved register 0 \\
+r11 & s1 & Saved register 1 \\
+r12 & s2/fp\_hi & Saved 2 / Frame pointer high \\
+r13 & s3/fp\_lo & Saved 3 / Frame pointer low \\
+r14 & sp\_hi & Stack pointer high \\
+r15 & sp\_lo & Stack pointer low \\
+\bottomrule
+\end{tabular}
+\caption{Register Name Aliases}
+\end{table}
+
+\section{Example Assembly Program}
+
+\begin{lstlisting}
+#===============================================
+# Program: Sum Array
+# Description: Sum elements of a 4-element array
+#===============================================
+
+    .org 0x000
+
+    #-------------------------------------------
+    # Initialization
+    #-------------------------------------------
+start:
+    # Initialize stack pointer to 0xFF
+    LI   sp_hi, 0xF
+    LI   sp_lo, 0xF
+
+    # Set up array pointer
+    LI   r10, 0x8           # Array at 0x80
+    LI   r11, 0x0
+
+    # Initialize sum to zero
+    CLR  r2                 # r2 = sum
+
+    # Initialize counter
+    LI   r3, 4              # r3 = count
+
+    #-------------------------------------------
+    # Sum Loop
+    #-------------------------------------------
+sum_loop:
+    LW   r4, 0(r10)         # Load array[i]
+    ADD  r2, r2, r4         # sum += array[i]
+
+    # Increment pointer
+    INC  r11                # ptr++
+
+    # Decrement counter
+    DEC  r3                 # count--
+    BNE  sum_loop           # Continue if count != 0
+
+    #-------------------------------------------
+    # Store Result
+    #-------------------------------------------
+    SW   r2, 0(r10)         # Store sum at array[4]
+
+done:
+    J    done               # Infinite loop
+
+    #-------------------------------------------
+    # Data Section
+    #-------------------------------------------
+    .org 0x80
+array:
+    .nibble 0x3, 0x5, 0x2, 0x7  # Array elements
+result:
+    .nibble 0x0                  # Result location
+\end{lstlisting}
 \chapter{Example Programs}
 
 \section{Fibonacci Sequence}
@@ -718,7 +3299,7 @@ fib:
     BEQ  r7, return_n    # If r7 == 0 (meaning n < 2), jump
 
     # Recursive step would go here...
-    # (Omitted for brevity due to complexity of
+    # (Omitted for brevity due to complexity of 
     # saving context in 4-bit mode)
 
 return_n:
@@ -731,14 +3312,179 @@ return_n:
 % ============================================================
 \chapter{Revision History}
 
-\begin{table}[h]
-\begin{tabular}{@{}lll@{}}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}llp{9cm}@{}}
 \toprule
 \textbf{Version} & \textbf{Date} & \textbf{Changes} \\
 \midrule
-0.0.1 & 2026-01-20 & Initial draft \\
+0.1 & 2026-01-20 & Initial draft \\
+    &            & - Basic ISA definition \\
+    &            & - 16 instructions documented \\
+    &            & - Register model established \\
+    &            & - Preliminary calling convention \\
+\midrule
+0.1.2 & 2026-01-21 & Major documentation expansion \\
+      &            & - Added Chapter 4: Status Flags (comprehensive) \\
+      &            & - Added Chapter 8: Pipeline Architecture (5-stage pipeline) \\
+      &            & - Expanded Chapter 9: Addressing (register pairs, multi-precision) \\
+      &            & - Expanded Chapter 10: Calling Convention (complete prologue/epilogue) \\
+      &            & - Expanded Appendix A: Assembly Syntax (pseudo-instructions, directives) \\
+      &            & - Fixed all instruction flag documentation (C, Z flags) \\
+      &            & - Reorganized instruction order (opcode sequence) \\
+      &            & - Improved document formatting and spacing \\
+      &            & - Added comprehensive examples throughout \\
 \bottomrule
 \end{tabular}
+\caption{Document Revision History}
 \end{table}
+
+\section{Version 0.1 (Initial Draft)}
+
+\textbf{Date:} January 20, 2026
+
+\textbf{Status:} Solidifying
+
+\textbf{Major Components:}
+\begin{itemize}
+    \item Defined 4-bit RISC architecture with 16 instructions
+    \item Established 5-stage pipeline design (concept)
+    \item Documented register file (16 × 4-bit registers)
+    \item Defined four instruction formats (R, I, M, J)
+    \item Basic calling convention outlined
+    \item Fibonacci example program
+\end{itemize}
+
+\textbf{Known Limitations:}
+\begin{itemize}
+    \item Pipeline documentation incomplete
+    \item Flag behavior not fully specified
+    \item Calling convention needs expansion
+    \item Missing examples for common operations
+    \item No JALR instruction (returns difficult)
+\end{itemize}
+
+\section{Version 0.1.2 (Documentation Expansion)}
+
+\textbf{Date:} January 21, 2026
+
+\textbf{Status:} Pre-Silicon
+
+\textbf{Major Additions:}
+
+\subsection{Chapter 4: Status Flags}
+\begin{itemize}
+    \item Complete flag register specification (Carry and Zero)
+    \item Flag update rules for all instructions
+    \item Comparison operation patterns (equality, signed, unsigned)
+    \item Pipeline hazard analysis (flag forwarding vs stalls)
+    \item Design rationale (why RISC-4 uses flags)
+    \item Comparison to MIPS, ARM, SPARC flag implementations
+\end{itemize}
+
+\subsection{Chapter 8: Pipeline Architecture}
+\begin{itemize}
+    \item Complete 5-stage pipeline description (IF, ID, EX, MEM, WB)
+    \item Pipeline register definitions
+    \item Data hazard analysis (RAW, load-use, flag hazards)
+    \item Control hazard solutions (branch prediction, delay slots)
+    \item Forwarding logic specifications
+    \item Performance analysis (realistic CPI estimation)
+    \item Implementation considerations
+\end{itemize}
+
+\subsection{Chapter 9: Addressing (Expanded)}
+\begin{itemize}
+    \item Memory organization (Harvard architecture)
+    \item Register pair formation rules
+    \item Pair manipulation techniques (increment, decrement, offset addition)
+    \item Complete addressing mode examples (stack, arrays, structures)
+    \item Multi-precision arithmetic (8-bit, 16-bit operations)
+    \item Stack management (push, pop with carry handling)
+    \item Limitations and workarounds
+    \item Design rationale for register pairing
+\end{itemize}
+
+\subsection{Chapter 10: Calling Convention (Expanded)}
+\begin{itemize}
+    \item Complete register usage convention
+    \item Parameter passing (1-4 parameters, stack parameters)
+    \item Return value conventions
+    \item Stack frame structure and layout
+    \item Complete function prologue and epilogue
+    \item Example functions (leaf, non-leaf, recursive)
+    \item Advanced topics (variable arguments, nested calls)
+    \item Performance analysis (call overhead)
+    \item Optimization strategies
+    \item Future enhancements (JALR proposal)
+\end{itemize}
+
+\subsection{Appendix A: Assembly Syntax (Expanded)}
+\begin{itemize}
+    \item Complete operand type documentation
+    \item Pseudo-instruction catalog (NOP, MOV, LI, NOT, etc.)
+    \item Assembler directives (.org, .data, .equ, .align)
+    \item Commenting conventions
+    \item Register naming conventions
+    \item Complete example program
+\end{itemize}
+
+\subsection{All Instructions Updated}
+\begin{itemize}
+    \item Comprehensive flag documentation (C and Z)
+    \item Consistent formatting across all instruction descriptions
+    \item Detailed examples for each instruction
+    \item Flag behavior explicitly stated
+\end{itemize}
+
+\textbf{Bug Fixes:}
+\begin{itemize}
+    \item Fixed AND instruction: corrected operation to \texttt{rd ← rs \& rt}
+    \item Fixed ADDI instruction: corrected parameter order in encoding
+    \item Corrected flag naming inconsistencies throughout
+    \item Fixed instruction ordering (SHF moved to correct position)
+\end{itemize}
+
+\textbf{Formatting Improvements:}
+\begin{itemize}
+    \item Added spacing optimizations (reduced excessive whitespace)
+    \item Implemented raggedbottom (no vertical stretching)
+    \item Added subsection grouping (improved page breaks)
+    \item Standardized table formatting
+    \item Improved code listing presentation
+\end{itemize}
+
+\textbf{Remaining for v1.0:}
+\begin{itemize}
+    \item Add JALR instruction for proper function returns
+    \item Additional example programs (bubble sort, string operations)
+    \item Hardware implementation guide
+    \item Verilog/VHDL reference implementation
+    \item Assembler specification
+    \item Complete instruction timing diagrams
+    \item Test suite definition
+\end{itemize}
+
+\section{Future Versions}
+
+\subsection{Planned for v1.0 (Silicon)}
+\begin{itemize}
+    \item JALR instruction (indirect jump with link)
+    \item Hardware verification complete
+    \item Tapeout-ready RTL
+    \item Complete test suite
+    \item Assembler and toolchain
+    \item Reference implementation in Verilog
+\end{itemize}
+
+\subsection{Potential v2.0 Enhancements}
+\begin{itemize}
+    \item Hardware multiply/divide
+    \item Interrupt support
+    \item Memory-mapped I/O specification
+    \item DMA controller
+    \item Cache hierarchy
+    \item Floating-point coprocessor (4-bit mantissa experiments)
+\end{itemize}
 
 \end{document}
