@@ -18,6 +18,7 @@
 \usepackage{bytefield}         % Instruction encoding diagrams
 \usepackage{amsmath}           % Math symbols
 \usepackage{float}             % Better figure placement
+\usepackage{amssymb}
 % ============================================================
 % DISCOURAGE AWKWARD PAGE BREAKS
 % ============================================================
@@ -135,8 +136,8 @@
     breaklines=true,
     frame=single,
     backgroundcolor=\color{gray!10},
-    aboveskip=6pt,  
-    belowskip=6pt, 
+    aboveskip=6pt,
+    belowskip=6pt,
 }
 
 % ============================================================
@@ -769,7 +770,7 @@ Table~\ref{tab:opcodes} lists all RISC-4 instructions.
 \caption{RISC-4 Opcode Map}
 \label{tab:opcodes}
 \end{table}
- 
+
 
 \section{Arithmetic Instructions}
 
@@ -821,13 +822,13 @@ SUB r4, r5, r6      # r4 = r5 - r6
 
 \textbf{Note:} The Z flag is set when operands are equal, making SUB useful for comparisons.
 
- 
+
 \subsection{AND -- Bitwise AND}
 \begin{lstlisting}
 AND rd, rs, rt
 \end{lstlisting}
 
-\instructionDef{2}{R-type}{0010 dddd ssss tttt}{rd \leftarrow rs & rt}{Carry, Zero}{4 (single-cycle impl: 1)}
+\instructionDef{2}{R-type}{0010 dddd ssss tttt}{rd \leftarrow rs \& rt}{Carry, Zero}{4 (single-cycle impl: 1)}
 
 \noindent \textbf{Description:} Bitwise AND compare operation on registers \textbf{rs} and \textbf{rt}, results stored in \textbf{rd}. \textbf{Carry} flag cleared, \textbf{Zero} flag set if result == \textbf{0}
 
@@ -874,7 +875,7 @@ OR r2, r3, r0       # r2 = r3 | 0 = r3 (MOV pseudo-op)
 OR r1, r1, r1       # Explicit way to clear C, update Z
 \end{lstlisting}
 
- 
+
 \subsection{XOR -- Bitwise Exclusive OR}
 \begin{lstlisting}
 XOR rd, rs, rt
@@ -1129,7 +1130,7 @@ ANDI r1, r2, 0x1    # Extract bit 0 of r2
 ANDI r1, r2, 0x8    # Extract bit 3 (sign bit)
 BNE  negative       # Branch if Z = 0 (bit was set)
 \end{lstlisting}
- 
+
 
 \subsection{ORI -- OR Immediate}
 \begin{lstlisting}
@@ -1176,7 +1177,7 @@ SLTI r1, r2, 5      # r1 = (r2 < 5) ? 1 : 0
 # If r2 = 0xF (-1): r1 = 1, C = 0, Z = 0 (true, signed)
 \end{lstlisting}
 
- 
+
 \section{Memory Instructions}
 \subsection{LW -- Load Word}
 \begin{lstlisting}
@@ -1261,7 +1262,7 @@ RISC-4 implements a classic 5-stage RISC pipeline designed for simplicity and ef
 
 \textbf{Critical Path:}
 \begin{lstlisting}[language={}]
-PC → Instruction Memory → Instruction Register → IF/ID Register
+PC $\rightarrow$ Instruction Memory $\rightarrow$ Instruction Register $\rightarrow$ IF/ID Register
 \end{lstlisting}
 
 \textbf{Stall Conditions:}
@@ -1433,8 +1434,8 @@ Forward data from later pipeline stages to earlier stages:
 
 \textbf{Forwarding Paths:}
 \begin{lstlisting}[language={}]
-1. EX/MEM.ALUResult → ID/EX (ALU operand)
-2. MEM/WB.Result → ID/EX (ALU operand)
+1. EX/MEM.ALUResult $\rightarrow$ ID/EX (ALU operand)
+2. MEM/WB.Result $\rightarrow$ ID/EX (ALU operand)
 \end{lstlisting}
 
 \textbf{Hardware Cost:}
@@ -1660,7 +1661,7 @@ if (MEM/WB.RegWrite && MEM/WB.rd != 0 && MEM/WB.rd == ID/EX.rt)
 
 \textbf{Load-Use Hazard Detection:}
 \begin{lstlisting}[language={}]
-if (ID/EX.MemRead && 
+if (ID/EX.MemRead &&
     ((ID/EX.rd == IF/ID.rs) || (ID/EX.rd == IF/ID.rt)))
     Stall = 1  // Insert bubble, freeze IF and ID stages
 \end{lstlisting}
@@ -1948,9 +1949,9 @@ ADC r0, r2, r4      # Add high nibbles with carry:
 r2:r3 = 0x9F (159 decimal)
 r4:r5 = 0x23 (35 decimal)
 
-Step 1: r1 = r3 + r5 = 0xF + 0x3 = 0x12 → r1 = 0x2, C = 1
+Step 1: r1 = r3 + r5 = 0xF + 0x3 = 0x12 $\rightarrow$ r1 = 0x2, C = 1
 Step 2: r0 = r2 + r4 + C = 0x9 + 0x2 + 1 = 0xC
-Result: r0:r1 = 0xC2 (194 decimal) ✓
+Result: r0:r1 = 0xC2 (194 decimal) $\checkmark$
 \end{lstlisting}
 
 \subsection{8-Bit Subtraction}
@@ -1970,9 +1971,9 @@ SBB r0, r2, r4      # Subtract high nibbles with borrow:
 r2:r3 = 0x84 (132 decimal)
 r4:r5 = 0x37 (55 decimal)
 
-Step 1: r1 = r3 - r5 = 0x4 - 0x7 = -3 → r1 = 0xD (13), C = 1 (borrow)
+Step 1: r1 = r3 - r5 = 0x4 - 0x7 = -3 $\rightarrow$ r1 = 0xD (13), C = 1 (borrow)
 Step 2: r0 = r2 - r4 - C = 0x8 - 0x3 - 1 = 0x4
-Result: r0:r1 = 0x4D (77 decimal) ✓
+Result: r0:r1 = 0x4D (77 decimal) $\checkmark$
 \end{lstlisting}
 
 \subsection{16-Bit Operations}
@@ -1997,10 +1998,10 @@ The stack grows downward from high memory toward low memory:
 
 \begin{lstlisting}[language={}]
 High Memory (0xFF)
-    ↑
+    $\uparrow$
     | Stack grows downward
     | (SP decrements on push)
-    ↓
+    $\downarrow$
 Low Memory (0x00)
 \end{lstlisting}
 
@@ -2055,13 +2056,13 @@ Typical function stack frame layout:
 
 \begin{lstlisting}[language={}]
 High addresses
-    [local variable n]  ← FP + n
-    [local variable 2]  ← FP + 2
-    [local variable 1]  ← FP + 1
-    [saved r12]         ← FP + 0  (old frame pointer)
-    [return address]    ← FP - 1
-    [saved registers]   ← FP - 2, FP - 3, ...
-    [free space]        ← SP (current stack pointer)
+    [local variable n]  $\leftarrow$ FP + n
+    [local variable 2]  $\leftarrow$ FP + 2
+    [local variable 1]  $\leftarrow$ FP + 1
+    [saved r12]         $\leftarrow$ FP + 0  (old frame pointer)
+    [return address]    $\leftarrow$ FP - 1
+    [saved registers]   $\leftarrow$ FP - 2, FP - 3, ...
+    [free space]        $\leftarrow$ SP (current stack pointer)
 Low addresses
 \end{lstlisting}
 
@@ -2378,16 +2379,16 @@ A typical stack frame contains:
 High addresses
     [Caller's frame]
     [................]
-    [Argument n]        ← FP + n (arguments beyond 4)
-    [Argument 5]        ← FP + 5
-    [Return address]    ← FP + 4
-    [Saved FP high]     ← FP + 3
-    [Saved FP low]      ← FP + 2
-    [Saved r10]         ← FP + 1
-    [Saved r11]         ← FP + 0 (FP points here)
-    [Local var 0]       ← FP - 1
-    [Local var 1]       ← FP - 2
-    [Temp storage]      ← SP (current stack pointer)
+    [Argument n]        $\leftarrow$ FP + n (arguments beyond 4)
+    [Argument 5]        $\leftarrow$ FP + 5
+    [Return address]    $\leftarrow$ FP + 4
+    [Saved FP high]     $\leftarrow$ FP + 3
+    [Saved FP low]      $\leftarrow$ FP + 2
+    [Saved r10]         $\leftarrow$ FP + 1
+    [Saved r11]         $\leftarrow$ FP + 0 (FP points here)
+    [Local var 0]       $\leftarrow$ FP - 1
+    [Local var 1]       $\leftarrow$ FP - 2
+    [Temp storage]      $\leftarrow$ SP (current stack pointer)
 Low addresses
 \end{lstlisting}
 
@@ -2485,11 +2486,11 @@ A leaf function doesn't call other functions, so it doesn't need to save RA:
 
 add_three:
     # No prologue needed (leaf function, no locals)
-    
+
     # Function body
     ADD r2, r2, r3      # r2 = a + b
     ADD r2, r2, r4      # r2 = a + b + c
-    
+
     # No epilogue needed
     # Return (assuming return mechanism exists)
     RET                 # Pseudo-instruction
@@ -2509,34 +2510,34 @@ square_sum:
     BCC  no_borrow_p
     ADDI r14, r14, -1
 no_borrow_p:
-    
+
     SW   r1, 0(r14)     # Save return address
     SW   r10, 1(r14)    # Save r10 (we'll use it)
-    
+
     # Function body
     ADD  r10, r2, r3    # r10 = a + b (save before calling)
-    
+
     # Call square(r10)
     ADD  r2, r10, r0    # Move argument to r2
     # Save our RA before calling
     # (Our RA is already on stack)
-    
+
     # Pseudo-call to square
     # In real implementation, this would be:
     # Store current PC+1 in r1
     # J square
-    
+
     # After return from square, r2 = result
-    
+
     # Epilogue
     LW   r10, 1(r14)    # Restore r10
     LW   r1, 0(r14)     # Restore return address
-    
+
     ADDI r15, r15, 3    # Deallocate
     BCC  no_carry_e
     ADDI r14, r14, 1
 no_carry_e:
-    
+
     RET                 # Return
 \end{lstlisting}
 
@@ -2553,43 +2554,43 @@ factorial:
     BCC  no_borrow_fp
     ADDI r14, r14, -1
 no_borrow_fp:
-    
+
     SW   r1, 0(r14)     # Save RA
     SW   r10, 1(r14)    # Save r10 (for n)
     SW   r2, 2(r14)     # Save n
-    
+
     # Base case: if (n <= 1) return 1
     SLTI r7, r2, 2      # r7 = (n < 2) ? 1 : 0
     BEQ  base_case      # If r7 == 0 (n >= 2), skip to recursive
-    
+
     # Base case: return 1
     ORI  r2, r0, 1      # result = 1
     J    factorial_return
-    
+
 base_case:
     # Recursive case: return n * factorial(n-1)
     ADD  r10, r2, r0    # Save n in r10
-    
+
     ADDI r2, r2, -1     # r2 = n - 1
     # Recursive call to factorial(r2)
     # (Pseudo-call, would need real call mechanism)
-    
+
     # After return, r2 = factorial(n-1)
     # Multiply by n (in r10)
     # For 4-bit, multiplication is complex, simplified here:
     # result = n * factorial(n-1)
     # (Assume multiply routine exists)
-    
+
 factorial_return:
     # Epilogue
     LW   r10, 1(r14)    # Restore r10
     LW   r1, 0(r14)     # Restore RA
-    
+
     ADDI r15, r15, 4    # Deallocate
     BCC  no_carry_fe
     ADDI r14, r14, 1
 no_carry_fe:
-    
+
     RET
 \end{lstlisting}
 
@@ -2611,13 +2612,13 @@ sum_six:
     # [sp+3] = saved RA
     # [sp+4] = caller's stack param: e
     # [sp+5] = caller's stack param: f
-    
+
     # To access e and f, need to account for our frame
     # FP points to saved r11, so:
     # [FP+3] = saved RA
     # [FP+4] = parameter e
     # [FP+5] = parameter f
-    
+
     ADD  r2, r2, r3     # a + b
     ADD  r2, r2, r4     # + c
     ADD  r2, r2, r5     # + d
@@ -2644,25 +2645,25 @@ varargs:
     # [FP+4] = arg3
     # [FP+5] = arg4
     # ...
-    
+
     # Loop through stack parameters if count > 4
     SLTI r7, r2, 5      # if (count < 5), no stack params
     BNE  no_stack
-    
+
     # Process stack parameters
     # Calculate number of stack params: count - 4
     ADDI r6, r2, -4     # r6 = count - 4
     ORI  r8, r0, 4      # r8 = offset (starting at FP+4)
-    
+
 loop:
     LW   r9, 0(r12)     # Load param at [FP + r8]
                         # (Simplified: would need to add r8 to r12:r13)
     # Process r9...
-    
+
     ADDI r8, r8, 1      # offset++
     ADDI r6, r6, -1     # remaining--
     BNE  loop           # Continue if more params
-    
+
 no_stack:
     # Done processing
 \end{lstlisting}
@@ -2684,7 +2685,7 @@ func_a:
     # Prologue creates frame
     # SP = 0xE8, FP = 0xE8
     # Saved registers, RA point to main
-    
+
     # Call func_b
     # ...
 
@@ -2692,13 +2693,13 @@ func_b:
     # Prologue creates frame
     # SP = 0xE0, FP = 0xE0
     # Saved registers, RA point to func_a
-    
+
     # Work...
-    
+
     # Epilogue restores func_a's frame
     # SP back to 0xE8
     # Return to func_a
-    
+
     # func_a epilogue restores main's frame
     # SP back to 0xF0
     # Return to main
@@ -2721,7 +2722,7 @@ call_site_1:
     J    function
 ret1:
     # Returned here
-    
+
 function:
     # Do work...
     # Jump to address in r1 (but can't: no JALR)
@@ -2773,7 +2774,7 @@ func:
     # Reconstruct full pointer (assuming high byte is 0x8)
     ORI  r10, r0, 0x8
     ADD  r11, r2, r0     # r10:r11 = params pointer
-    
+
     LW   r3, 0(r10)      # Load params[0]
     LW   r4, 1(r10)      # Load params[1]
     # ...
@@ -3298,7 +3299,7 @@ fib:
     BEQ  r7, return_n    # If r7 == 0 (meaning n < 2), jump
 
     # Recursive step would go here...
-    # (Omitted for brevity due to complexity of 
+    # (Omitted for brevity due to complexity of
     # saving context in 4-bit mode)
 
 return_n:
