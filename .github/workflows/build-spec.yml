@@ -1,11 +1,10 @@
 name: Build Specification
-
 on:
   push:
     branches: ["main"]
     paths:
-      - "**.tex"
-      - "Makefile"
+      - "docs/isa-spec/**.tex"
+      - "docs/isa-spec/Makefile"
   pull_request:
     branches: ["main"]
 
@@ -15,18 +14,23 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      # This action sets up a container with TeX Live and runs 'make'
-      - name: Compile LaTeX
-        uses: xu-cheng/latex-action@v3
+      
+      - name: Compile LaTeX document
+        uses: dante-ev/latex-action@latest
         with:
-          # This tells the action to run your Makefile's 'release' target
-          args: release
-
-      # Upload the PDF as an artifact you can download from the Actions tab
-      - name: Upload Spec Artifact
+          root_file: risc4-isa-spec.tex
+          working_directory: docs/isa-spec
+          compiler: pdflatex
+          args: -interaction=nonstopmode -halt-on-error
+      
+      - name: Create release directory
+        run: |
+          cd docs/isa-spec
+          make release
+      
+      - name: Upload PDF
         uses: actions/upload-artifact@v4
         with:
           name: RISC-4-Spec
-          path: releases/*.pdf
+          path: docs/isa-spec/releases/*.pdf
           if-no-files-found: error
