@@ -23,7 +23,7 @@ RISC-4 is a complete load/store RISC architecture with:
 - 16 general-purpose registers
 - 20 instructions (fixed 16-bit encoding)
 - 5-stage pipeline design
-- Compare-to-zero branches
+- Flag based branching
 
 This ISA is implemented in silicon as part of the
 [4004-recreation project](https://github.com/jking323/intel-4004-recreation).

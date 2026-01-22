@@ -35,8 +35,8 @@
 \displaywidowpenalty=10000 % Same for display math
 
 % Discourage breaking after section headings
-\usepackage{etoolbox}
-\preto\subsection{\filbreak}  % "Break here IF you must, but try not to"
+\usepackage{needspace}
+\preto\subsection{\needspace{5\baselineskip}}
 
 % Keep list items together
 \usepackage{enumitem}
@@ -73,7 +73,7 @@
 % ============================================================
 % DOCUMENT METADATA
 % ============================================================
-\newcommand{\specversion}{0.1.0}
+\newcommand{\specversion}{0.2.0}
 \newcommand{\specdate}{January 21, 2026}
 \newcommand{\specstatus}{Pre-Silicon}
 
@@ -173,6 +173,7 @@
     \bottomrule
     \end{tabular}
     \end{table}
+    \vspace{6pt}
 }
 
 
@@ -191,8 +192,7 @@ This document represents an alternate history: ``What if the RISC revolution occ
 \end{abstract}
 
 \tableofcontents
-\listoffigures
-\listoftables
+
 
 % ============================================================
 % CHAPTER 1: INTRODUCTION
@@ -247,7 +247,7 @@ Table~\ref{tab:comparison} compares RISC-4 to its historical inspirations.
 \toprule
 \textbf{Feature} & \textbf{Intel 4004} & \textbf{RISC-4} & \textbf{RISC-I} \\
 \midrule
-Year (design) & 1971 & 2025 & 1982 \\
+Year (design) & 1971 & 2026 & 1982 \\
 Datapath & 4-bit & 4-bit & 32-bit \\
 Instruction width & 8-16 bits & 16 bits & 32 bits \\
 Architecture & Accumulator & Load/store & Load/store \\
@@ -296,7 +296,6 @@ RISC-4 provides 16 general-purpose registers, each 4 bits wide. While all regist
 \caption{Register File Organization}
 \label{tab:registers}
 \end{table}
-\pagebreak
 \subsection{Register \reg{0} (zero)}
 
 Register \reg{0} is hardwired to the constant value zero:
@@ -360,6 +359,7 @@ Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across t
 % Define a macro for row labels to ensure consistent spacing
 \newcommand{\fmtlabel}[1]{\makebox[1.5cm][r]{\textbf{#1} \hspace{1em}}}
 
+\begin{subfigure}
 % R-Type
 \fmtlabel{R-Type}
 \begin{bytefield}[bitwidth=1.5em]{16}
@@ -367,7 +367,10 @@ Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across t
     \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{rd} & \bitbox{4}{rs} & \bitbox{4}{rt}
 \end{bytefield}
 \vspace{0.5cm} % Spacing between rows
+\caption{R-type Format}
+\end{subfigure}
 
+\begin{subfigure}
 % I-Type (Arithmetic)
 \fmtlabel{I-Type (Arith)}
 \begin{bytefield}[bitwidth=1.5em]{16}
@@ -375,7 +378,10 @@ Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across t
     \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{rd} & \bitbox{4}{rs} & \bitbox{4}{imm4}
 \end{bytefield}
 \vspace{0.5cm}
+\caption{I-Type (Arith) Format}
+\end{subfigure}
 
+\begin{subfigure}
 % I-Type (Branch)
 \fmtlabel{I-Type (Branch)}
 \begin{bytefield}[bitwidth=1.5em]{16}
@@ -383,7 +389,10 @@ Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across t
     \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{cond} & \bitbox{8}{offset8}
 \end{bytefield}
 \vspace{0.5cm}
+\caption{I-type (Branch Format)}
+\end{subfigure}
 
+\begin{subfigure}
 % M-Type
 \fmtlabel{M-Type}
 \begin{bytefield}[bitwidth=1.5em]{16}
@@ -391,13 +400,18 @@ Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across t
     \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{rd / rs} & \bitbox{4}{base} & \bitbox{4}{offset4}
 \end{bytefield}
 \vspace{0.5cm}
+\caption{M-type Format}
+\end{subfigure}
 
+\begin{subfigure}
 % J-Type
 \fmtlabel{J-Type}
 \begin{bytefield}[bitwidth=1.5em]{16}
     \bitheader{0,11,12,15} \\
     \bitbox{4}{\textbf{Opcode}} & \bitbox{12}{target12}
 \end{bytefield}
+\caption{J-type Format}
+\end{subfigure}
 
 \caption{RISC-4 Instruction Format Summary}
 \label{fig:formatsummary}
@@ -552,12 +566,12 @@ The Zero flag indicates whether the result of an operation is zero.
 \textbf{Comparison Pattern:}
 
 Testing equality requires a subtraction followed by a zero test:
-
+\begin{samepage}
 \begin{lstlisting}[caption={If (r1 == r2) goto equal}]
 SUB r3, r1, r2      # r3 = r1 - r2, sets Z if equal
 BEQ equal           # Branch if Z=1 (difference was zero)
 \end{lstlisting}
-
+\end{samepage}
 \section{Flag Update Rules}
 
 \subsection{Instructions That Set Flags}
@@ -595,43 +609,43 @@ The following instructions \textbf{do not modify} flags:
 \end{itemize}
 
 \textbf{Critical Implication:} Load/store operations between an ALU instruction and a branch will preserve flags:
-
+\begin{samepage}
 \begin{lstlisting}[caption={Flags preserved across load}]
 SUB r3, r1, r2      # Sets Z flag
 LW  r4, 0(r14)      # Does NOT change Z flag
 BEQ equal           # Still uses Z from SUB
 \end{lstlisting}
-
+\end{samepage}
 \section{Comparison Operations}
 
 \subsection{Equality (==, !=)}
-
+\begin{samepage}
 \begin{lstlisting}[caption={Test if r1 == r2}]
 SUB r3, r1, r2      # r3 = r1 - r2
 BEQ equal           # Branch if Z=1 (r1 == r2)
 BNE not_equal       # Branch if Z=0 (r1 != r2)
 \end{lstlisting}
-
+\end{samepage}
 \subsection{Unsigned Comparison (<, >=)}
 
 For unsigned values (0 to 15):
-
+\begin{samepage}
 \begin{lstlisting}[caption={Test if r1 < r2 (unsigned)}]
 SUB r3, r1, r2      # r3 = r1 - r2
 BCS less            # Branch if C=1 (borrow occurred, r1 < r2)
 BCC greater_equal   # Branch if C=0 (no borrow, r1 >= r2)
 \end{lstlisting}
-
+\end{samepage}
 \subsection{Signed Comparison (<, >=)}
 
 For signed values (-8 to +7), use SLT:
-
+\begin{samepage}
 \begin{lstlisting}[caption={Test if r1 < r2 (signed)}]
 SLT r3, r1, r2      # r3 = (r1 < r2) ? 1 : 0
 BNE less            # Branch if r3 != 0 (comparison true)
 BEQ greater_equal   # Branch if r3 == 0 (comparison false)
 \end{lstlisting}
-
+\end{samepage}
 \textbf{Rationale:} Signed comparison requires checking both the sign bit and magnitude. The SLT instruction implements the full signed comparison logic, outputting a boolean result that can be tested with the zero flag.
 
 \section{Pipeline Considerations}
@@ -671,13 +685,13 @@ Detect flag hazard and insert 1-cycle bubble:
 \end{itemize}
 
 \textbf{Compiler Optimization:} Insert independent instruction between comparison and branch:
-
+\begin{samepage}
 \begin{lstlisting}[caption={Avoiding stall with instruction scheduling}]
 SUB r3, r1, r2      # Sets flags
 LW  r4, 0(r14)      # Independent load (fills bubble)
 BEQ equal           # Flags ready by this point
 \end{lstlisting}
-
+\end{samepage}
 \section{Design Rationale}
 
 \subsection{Why RISC-4 Uses Flags}
@@ -791,12 +805,13 @@ ADD rd, rs, rt
 \end{itemize}
 
 \textbf{Examples:}
+\begin{samepage}
 \begin{lstlisting}
 ADD r1, r2, r3      # r1 = r2 + r3
 # If r2 = 0xF, r3 = 0x1: result = 0x0, C = 1, Z = 1
 # If r2 = 0x7, r3 = 0x2: result = 0x9, C = 0, Z = 0
 \end{lstlisting}
-
+\end{samepage}
 \subsection{SUB -- Subtract}
 \begin{lstlisting}
 SUB rd, rs, rt
@@ -814,12 +829,13 @@ SUB rd, rs, rt
 \end{itemize}
 
 \textbf{Examples:}
+\begin{samepage}
 \begin{lstlisting}
 SUB r4, r5, r6      # r4 = r5 - r6
 # If r5 = 0x3, r6 = 0x5: result = 0xE (-2), C = 1, Z = 0
 # If r5 = 0x8, r6 = 0x8: result = 0x0, C = 0, Z = 1
 \end{lstlisting}
-
+\end{samepage}
 \textbf{Note:} The Z flag is set when operands are equal, making SUB useful for comparisons.
 
 
@@ -929,7 +945,6 @@ SLT r1, r2, r3      # Test r2 < r3
 BNE less_than       # Branch if Z = 0 (comparison true)
 BEQ greater_equal   # Branch if Z = 1 (comparison false)
 \end{lstlisting}
-\pagebreak
 \section{Shift Instruction}
 
 
@@ -966,7 +981,6 @@ SHF rd, rs, imm4
     \item \textbf{Z} ← 1 if result == 0, else 0
 \end{itemize}
 
-\pagebreak
 \textbf{Examples:}
 \begin{lstlisting}
 SHF r1, r2, 0x1     # Shift left by 1: r1 = r2 << 1
@@ -999,7 +1013,6 @@ SHF r1, r1, 0x1     # Shift low nibble left, C = old bit 3
 
 
 
-\pagebreak
 \section{Extended Arithmetic Instructions}
 \label{sec:ext_alu}
 
@@ -1020,12 +1033,14 @@ ADC rd, rs
 \end{itemize}
 
 \textbf{Multi-Precision Example:}
+\begin{samepage}
 \begin{lstlisting}
 # 8-bit addition: r0:r1 = r2:r3 + r4:r5
 ADD r1, r3, r5      # Low nibble: r1 = r3 + r5, sets C
 ADC r0, r2, r4      # High nibble: r0 = r2 + r4 + C
 # Final Z flag reflects whether entire 8-bit result is zero
 \end{lstlisting}
+\end{samepage}
 
 \subsection{SBB -- Subtract with Borrow}
 \begin{lstlisting}
@@ -1073,7 +1088,6 @@ NEG r1, r2          # r1 = -r2 (two's complement)
 
 \textbf{Note:} Negating -8 produces -8 due to two's complement overflow in 4-bit signed arithmetic.
 
-\pagebreak
 \section{Immediate Arithmetic Instructions}
 \subsection{ADDI -- ADD Immediate}
 \begin{lstlisting}
@@ -1234,10 +1248,189 @@ BCC offset8   # Branch if Carry Clear (C=0)
 \begin{lstlisting}
 J target12
 \end{lstlisting}
-\instructionDef{F}{J-type}{1111 aaaa aaaa aaaa}{pc \leftarrow target12}{--}{3}
 
-\noindent \textbf{Description:} Unconditional absolute jump to the 12-bit address \texttt{target12}. This allows jumping to any location in the 4096-nibble instruction memory.
+\instructionDef{F}{J-type}{1111 0ttt tttt tttt}{PC \leftarrow \text{target12}}{--}{1}
 
+\noindent \textbf{Description:} Unconditional jump to the 12-bit absolute address specified by \texttt{target12}. The full instruction memory address space (0x000-0xFFF) is reachable.
+
+\textbf{Flags:} No flags are modified.
+
+\textbf{Examples:}
+\begin{lstlisting}
+J 0x234    # Jump to address 0x234
+J 0xFFE    # Jump to address 0xFFE (near end of memory)
+
+# Infinite loop:
+loop:
+    # ... code ...
+    J loop
+\end{lstlisting}
+
+\textbf{Use Cases:}
+\begin{itemize}
+    \item Infinite loops
+    \item Far jumps (across pages)
+    \item End of non-returning functions
+    \item Jump tables (with computed addresses)
+\end{itemize}
+
+\subsection{JAL -- Jump And Link}
+\begin{lstlisting}
+JAL target11
+\end{lstlisting}
+
+\instructionDef{F}{J-type (variant)}{1111 1ttt tttt tttt}{r1 \leftarrow PC[11:8], r2 \leftarrow PC[7:4], r3 \leftarrow PC[3:0], PC \leftarrow \{1'b0, \text{target11}\}}{--}{1}
+
+\noindent \textbf{Description:} Jump and Link performs an unconditional jump to the 11-bit target address while saving the return address across three registers (r1:r2:r3). This instruction is used for function calls.
+
+\textbf{Register Convention:} The return address is split across three 4-bit registers:
+\begin{itemize}
+    \item r1 receives PC[11:8] (high nibble)
+    \item r2 receives PC[7:4] (middle nibble)
+    \item r3 receives PC[3:0] (low nibble)
+\end{itemize}
+
+\textbf{Address Range:} JAL can reach addresses 0x000-0x7FF (2048 nibbles, 1024 bytes). For functions beyond this range, use J (unconditional jump) or reorganize code placement.
+
+\textbf{Flags:} No flags are modified.
+
+\textbf{Examples:}
+\begin{lstlisting}
+# Simple function call:
+main:
+    ORI  r4, r0, 5      # Argument in r4
+    JAL  add_one        # Call function, r1:r2:r3 <- return address
+    # Execution continues here after return
+
+add_one:
+    ADDI r4, r4, 1      # r4 = r4 + 1
+    JR   r1             # Return (see JR instruction)
+\end{lstlisting}
+
+\textbf{Nested Function Call Example:}
+\begin{lstlisting}
+caller:
+    JAL  func_a         # r1:r2:r3 <- return address (e.g., 0x010)
+
+func_a:
+    # Save return address to stack before calling another function
+    ADDI r15, r15, -3   # Allocate stack space
+    BCC  no_borrow
+    ADDI r14, r14, -1
+no_borrow:
+    SW   r1, 0(r14)     # Save r1 (high nibble)
+    SW   r2, 1(r14)     # Save r2 (mid nibble)
+    SW   r3, 2(r14)     # Save r3 (low nibble)
+
+    JAL  func_b         # Call another function (overwrites r1:r2:r3)
+
+    # Restore return address
+    LW   r1, 0(r14)
+    LW   r2, 1(r14)
+    LW   r3, 2(r14)
+    ADDI r15, r15, 3
+    BCC  no_carry
+    ADDI r14, r14, 1
+no_carry:
+
+    JR   r1             # Return to original caller
+\end{lstlisting}
+
+\textbf{Pipeline Behavior:}
+
+JAL executes in the ID stage:
+\begin{itemize}
+    \item \textbf{Cycle 1 (IF):} Fetch JAL instruction
+    \item \textbf{Cycle 2 (ID):}
+    \begin{itemize}
+        \item Decode JAL
+        \item Write PC+1 to r1:r2:r3 (three register writes)
+        \item Update PC to target
+        \item Flush IF stage (wrong instruction was speculatively fetched)
+    \end{itemize}
+    \item \textbf{Cycle 3 (IF):} Fetch instruction at target address
+\end{itemize}
+
+Total latency: 2 cycles (1 for JAL + 1 for branch penalty)
+
+\textbf{Design Notes:}
+\begin{itemize}
+    \item JAL performs three simultaneous register writes. Implementation must support writing r1, r2, and r3 in the same cycle, or execute JAL over multiple cycles.
+    \item The target address has bit [11] forced to 0, limiting range to the lower half of instruction memory.
+    \item For calls to addresses beyond 0x7FF, use a two-instruction sequence: J to the target, then save return address manually.
+\end{itemize}
+
+\subsection{JR -- Jump Register}
+\begin{lstlisting}
+JR r1
+\end{lstlisting}
+
+\instructionDef{7}{R-type (Extended)}{0111 xxxx xxxx 0011}{PC \leftarrow \{r1, r2, r3\}}{--}{1}
+
+\noindent \textbf{Description:} Jump Register performs an indirect jump to the 12-bit address formed by concatenating registers r1, r2, and r3. This instruction is used to return from function calls.
+
+\textbf{Register Convention:} JR always reads from r1:r2:r3 (the return address registers). The encoding fields for rd and rs are unused (set to 0 by assembler).
+
+\textbf{Address Formation:}
+\begin{lstlisting}[language={}]
+PC <- {r1[3:0], r2[3:0], r3[3:0]}
+       |         |         |
+       High      Mid       Low
+\end{lstlisting}
+
+\textbf{Flags:} No flags are modified.
+
+\textbf{Examples:}
+\begin{lstlisting}
+# Simple return from function:
+add_one:
+    ADDI r4, r4, 1      # Do work
+    JR   r1             # Return to caller
+
+# Return after nested call (r1:r2:r3 restored from stack):
+func_a:
+    # ... work ...
+    LW   r1, 0(r14)     # Restore return address from stack
+    LW   r2, 1(r14)
+    LW   r3, 2(r14)
+    JR   r1             # Return
+\end{lstlisting}
+
+\textbf{Pipeline Behavior:}
+
+JR executes in the ID stage with dedicated return address path:
+\begin{itemize}
+    \item \textbf{Cycle 1 (IF):} Fetch JR instruction
+    \item \textbf{Cycle 2 (ID):}
+    \begin{itemize}
+        \item Decode JR
+        \item Read r1, r2, r3 via dedicated 12-bit concatenation path
+        \item Update PC to \{r1, r2, r3\}
+        \item Flush IF stage
+    \end{itemize}
+    \item \textbf{Cycle 3 (IF):} Fetch instruction at return address
+\end{itemize}
+
+Total latency: 2 cycles (1 for JR + 1 for branch penalty)
+
+\textbf{Hazard Handling:}
+
+If a previous instruction modifies r1, r2, or r3, forwarding logic provides the updated values:
+\begin{lstlisting}
+# Hazard example:
+ADD  r1, r4, r5     # r1 written in WB stage
+JR   r1             # r1 needed in ID stage
+# Forwarding resolves this with 0 stalls
+\end{lstlisting}
+
+The dedicated return address path includes forwarding muxes for r1, r2, and r3 from the EX/MEM and MEM/WB pipeline registers.
+
+\textbf{Design Notes:}
+\begin{itemize}
+    \item JR uses a dedicated 12-bit read path that always accesses r1:r2:r3, separate from the normal register file read ports.
+    \item This dedicated path allows JR to execute in a single cycle without requiring a 3-port register file.
+    \item Hardware cost: ~50 gates (ASIC) or 10 LUTs (FPGA) for the concatenation and forwarding logic.
+\end{itemize}
 % ============================================================
 % CHAPTER 8: PIPELINE ARCHITECTURE
 % ============================================================
@@ -1262,7 +1455,7 @@ RISC-4 implements a classic 5-stage RISC pipeline designed for simplicity and ef
 
 \textbf{Critical Path:}
 \begin{lstlisting}[language={}]
-PC $\rightarrow$ Instruction Memory $\rightarrow$ Instruction Register $\rightarrow$ IF/ID Register
+PC \rightarrow Instruction Memory \rightarrow Instruction Register \rightarrow IF/ID Register
 \end{lstlisting}
 
 \textbf{Stall Conditions:}
@@ -2198,9 +2391,9 @@ A calling convention defines the rules for how functions call each other, pass p
 \midrule
 r0 & zero & Constant zero & N/A (always zero) \\
 r1 & ra & Return address & Caller saves \\
-r2 & a0 & Argument 0 / Return value & No \\
-r3 & a1 & Argument 1 & No \\
-r4 & a2 & Argument 2 & No \\
+r2 & ra\_hi & Return address HIGH & Caller Saves (if nested call) \\
+r3 & ra\_mid & Return address MID & Caller Saves (if nested call) \\
+r4 & ra\_low & Return address LOW 2 & Caller Saves (if nested call) \\
 r5 & a3 & Argument 3 & No \\
 r6 & v0 & Return value (alternate) & No \\
 r7 & t0 & Temporary & No (caller-saved) \\
@@ -2216,6 +2409,12 @@ r15 & sp\_lo & Stack pointer low & Yes (callee-saved) \\
 \end{tabular}
 \caption{Register Calling Convention}
 \end{table}
+
+\subsection{Return Address Handling}
+\textbf(For leaf functions)(don't call other functions):
+The return address in r1:r2:r3 is automatically preserved. Simply end with JR r1
+\textbf(For non-leaf functions)(call other functions):
+Save r1:r2:r3 to the stack before making calls, restore before returning.
 
 \subsection{Caller-Saved vs Callee-Saved}
 
@@ -2245,26 +2444,27 @@ Parameters are passed in registers r2-r5:
 \toprule
 \textbf{Register} & \textbf{Parameter} \\
 \midrule
-r2 (a0) & First argument (or bits [3:0] of multi-nibble value) \\
-r3 (a1) & Second argument (or bits [7:4] of multi-nibble value) \\
-r4 (a2) & Third argument \\
-r5 (a3) & Fourth argument \\
+r4 (a0) & First argument (or bits [3:0] of multi-nibble value) \\
+r5 (a1) & Second argument (or bits [7:4] of multi-nibble value) \\
+r6 (a2) & Third argument \\
+r7 (a3) & Fourth argument \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \textbf{Example: Single 4-bit parameter}
 \begin{lstlisting}
-# Call: result = add_one(value)
-# Input: r2 = value (4-bit)
-# Output: r2 = result (4-bit)
+# Call: result = add_three(5, 3, 2)
 
-ORI  r2, r0, 0x5    # Set argument: a0 = 5
-# Save r1 if needed (return address)
-SW   r1, -1(r14)    # Save return address to stack
-ORI  r1, r0, <ret_addr_high>  # Load return address
-ORI  r1, r0, <ret_addr_low>   # (simplified; real implementation uses computed address)
-J    add_one        # Call function
+ORI  r4, r0, 0x5    # Set argument: a0 = 5
+ORI  r5, r0, <ret_addr_high>  # Load return address
+ORI  r6, r0, <ret_addr_low>   # (simplified; real implementation uses computed address)
+JAL    add_three        # Call function
+
+add_three:
+    ADD r4, r4, r5 # a0 = a0 + a1
+    ADD r4, r4, r6 # a0 = a0+a2
+    JR r1          # Return
 # Return here
 \end{lstlisting}
 
@@ -2368,6 +2568,7 @@ divide:
     ORI r3, r0, 0x2     # remainder = 2
     # Return
 \end{lstlisting}
+
 
 \section{Stack Frame Structure}
 
@@ -2481,19 +2682,18 @@ A leaf function doesn't call other functions, so it doesn't need to save RA:
 
 \begin{lstlisting}
 # Function: add_three(a, b, c) -> a + b + c
-# Input: r2 = a, r3 = b, r4 = c
-# Output: r2 = result
+# Input: r4 = a, r5 = b, r6 = c
+# Output: r4 = result
 
 add_three:
     # No prologue needed (leaf function, no locals)
 
     # Function body
-    ADD r2, r2, r3      # r2 = a + b
-    ADD r2, r2, r4      # r2 = a + b + c
+    ADD r4, r5, r6      # r4 = a + b
+    ADD r4, r5, r6      # r4 = a + b + c
 
     # No epilogue needed
-    # Return (assuming return mechanism exists)
-    RET                 # Pseudo-instruction
+    JR r1               # return to r1 address
 \end{lstlisting}
 
 \subsection{Non-Leaf Function (Makes Calls)}
@@ -2501,44 +2701,34 @@ add_three:
 A function that calls other functions must save RA:
 
 \begin{lstlisting}
-# Function: square_sum(a, b) -> square(a + b)
-# Calls: square(x)
+# Function: add_and_double(x, y) -> (x + y) * 2
+# Calls another function: double(n)
 
-square_sum:
-    # Prologue
-    ADDI r15, r15, -3   # Allocate 3 nibbles
-    BCC  no_borrow_p
-    ADDI r14, r14, -1
+add_and_double:
+  # Prologue: Save return address
+  ADDI r15, r15, -3   # Allocate stack space
+  BCC  no_borrow_p
+  ADDI r14, r14, -1
 no_borrow_p:
+  SW   r1, 0(r14)     # Save ra_hi
+  SW   r2, 1(r14)     # Save ra_mid
+  SW   r3, 2(r14)     # Save ra_low
 
-    SW   r1, 0(r14)     # Save return address
-    SW   r10, 1(r14)    # Save r10 (we'll use it)
+  # Function body
+  ADD  r4, r4, r5     # x = x + y
+  JAL  double         # Call double(x+y), overwrites r1:r2:r3
+  # Result in r4
 
-    # Function body
-    ADD  r10, r2, r3    # r10 = a + b (save before calling)
-
-    # Call square(r10)
-    ADD  r2, r10, r0    # Move argument to r2
-    # Save our RA before calling
-    # (Our RA is already on stack)
-
-    # Pseudo-call to square
-    # In real implementation, this would be:
-    # Store current PC+1 in r1
-    # J square
-
-    # After return from square, r2 = result
-
-    # Epilogue
-    LW   r10, 1(r14)    # Restore r10
-    LW   r1, 0(r14)     # Restore return address
-
-    ADDI r15, r15, 3    # Deallocate
-    BCC  no_carry_e
-    ADDI r14, r14, 1
+  # Epilogue: Restore return address
+  LW   r1, 0(r14)     # Restore ra_hi
+  LW   r2, 1(r14)     # Restore ra_mid
+  LW   r3, 2(r14)     # Restore ra_low
+  ADDI r15, r15, 3    # Deallocate stack
+  BCC  no_carry_e
+  ADDI r14, r14, 1
 no_carry_e:
 
-    RET                 # Return
+  JR   r1             # Return
 \end{lstlisting}
 
 \subsection{Recursive Function}
@@ -3159,12 +3349,12 @@ function:
 \section{Commenting Conventions}
 
 \subsection{Inline Comments}
-
+\begin{samepage}
 \begin{lstlisting}
 ADD r1, r2, r3      # r1 = r2 + r3
 ADDI r4, r4, 1      # Increment counter
 \end{lstlisting}
-
+\end{samepage}
 \subsection{Block Comments}
 
 \begin{lstlisting}
@@ -3206,9 +3396,9 @@ main_loop:
 \textbf{Number} & \textbf{Name} & \textbf{Usage} \\
 \midrule
 r0 & zero & Constant zero \\
-r1 & ra & Return address \\
-r2 & a0 & Argument 0 / Return value \\
-r3 & a1 & Argument 1 \\
+r1 & ra\_hi/ra(or full return address alias) \\
+r2 & ra\_mid & Return address MID \\
+r3 & ra\_low & Return address LOW \\
 r4 & a2 & Argument 2 \\
 r5 & a3 & Argument 3 \\
 r6 & v0 & Return value (alternate) \\
@@ -3326,14 +3516,27 @@ return_n:
 \midrule
 0.1.0 & 2026-01-21 & Major documentation expansion \\
       &            & - Added Chapter 4: Status Flags (comprehensive) \\
-      &            & - Added Chapter 8: Pipeline Architecture (5-stage pipeline) \\
-      &            & - Expanded Chapter 9: Addressing (register pairs, multi-precision) \\
-      &            & - Expanded Chapter 10: Calling Convention (complete prologue/epilogue) \\
+      &            & - Added Chapter 6: Pipeline Architecture (5-stage pipeline) \\
+      &            & - Expanded Chapter 7: Addressing (register pairs, multi-precision) \\
+      &            & - Expanded Chapter 8: Calling Convention (complete prologue/epilogue) \\
       &            & - Expanded Appendix A: Assembly Syntax (pseudo-instructions, directives) \\
       &            & - Fixed all instruction flag documentation (C, Z flags) \\
       &            & - Reorganized instruction order (opcode sequence) \\
       &            & - Improved document formatting and spacing \\
       &            & - Added comprehensive examples throughout \\
+\midrule
+0.2.0 & 2026-01-22 & Function call mechanism and ISA refinement \\
+      &            & - Added JAL (Jump And Link) instruction \\
+      &            & - Added JR (Jump Register) instruction \\
+      &            & - Implemented 12-bit return address using r1:r2:r3 register triple \\
+      &            & - Updated J-type format to support JAL variant (bit [11] as link flag) \\
+      &            & - Extended EXT opcode with JR function (code 0x3) \\
+      &            & - Revised calling convention (r4-r7 now argument registers) \\
+      &            & - Updated register file documentation (r1:r2:r3 reserved for returns) \\
+      &            & - Added dedicated return address path in pipeline \\
+      &            & - Documented leaf vs non-leaf function prologue requirements \\
+      &            & - Added compiler guidance for JAL range limitation (11-bit) \\
+      &            & - Added trampoline strategy for far function calls \\
 \bottomrule
 \end{tabular}
 \caption{Document Revision History}
@@ -3382,7 +3585,7 @@ return_n:
     \item Comparison to MIPS, ARM, SPARC flag implementations
 \end{itemize}
 
-\subsection{Chapter 8: Pipeline Architecture}
+\subsection{Chapter 6: Pipeline Architecture}
 \begin{itemize}
     \item Complete 5-stage pipeline description (IF, ID, EX, MEM, WB)
     \item Pipeline register definitions
@@ -3393,7 +3596,7 @@ return_n:
     \item Implementation considerations
 \end{itemize}
 
-\subsection{Chapter 9: Addressing (Expanded)}
+\subsection{Chapter 7: Addressing (Expanded)}
 \begin{itemize}
     \item Memory organization (Harvard architecture)
     \item Register pair formation rules
@@ -3405,7 +3608,7 @@ return_n:
     \item Design rationale for register pairing
 \end{itemize}
 
-\subsection{Chapter 10: Calling Convention (Expanded)}
+\subsection{Chapter 8: Calling Convention (Expanded)}
 \begin{itemize}
     \item Complete register usage convention
     \item Parameter passing (1-4 parameters, stack parameters)
@@ -3465,26 +3668,138 @@ return_n:
     \item Test suite definition
 \end{itemize}
 
+\section{Version 0.2.0 (Function Call Mechanism)}
+
+\textbf{Date:} January 22, 2026
+
+\textbf{Status:} Pre-Silicon
+
+\textbf{Major Additions:}
+
+\subsection{New Instructions}
+\begin{itemize}
+    \item \textbf{JAL (Jump And Link):} Unconditional jump with return address save
+    \begin{itemize}
+        \item Encoding: \texttt{1111 1ttt tttt tttt} (J-type variant, bit [11] = 1)
+        \item Operation: \texttt{r1 ← PC[11:8], r2 ← PC[7:4], r3 ← PC[3:0], PC ← target11}
+        \item Range: 0x000--0x7FF (2048 nibbles, 11-bit target)
+        \item Uses register triple (r1:r2:r3) for 12-bit return address storage
+    \end{itemize}
+    \item \textbf{JR (Jump Register):} Indirect jump to address in r1:r2:r3
+    \begin{itemize}
+        \item Encoding: \texttt{0111 xxxx xxxx 0011} (EXT function code 0x3)
+        \item Operation: \texttt{PC ← \{r1, r2, r3\}} (concatenate to form 12-bit address)
+        \item Dedicated hardware path for return address read
+        \item Single-cycle execution with forwarding support
+    \end{itemize}
+\end{itemize}
+
+\subsection{Calling Convention Overhaul}
+\begin{itemize}
+    \item \textbf{Return address mechanism:} r1:r2:r3 form 12-bit return address register
+    \begin{itemize}
+        \item r1 (ra\_hi): High nibble [11:8]
+        \item r2 (ra\_mid): Middle nibble [7:4]
+        \item r3 (ra\_low): Low nibble [3:0]
+    \end{itemize}
+    \item \textbf{Argument registers shifted:} r4--r7 now used for parameters (was r2--r5)
+    \item \textbf{Return value registers:} r4, r6, r7 (was r2, r6)
+    \item \textbf{Leaf function optimization:} No prologue/epilogue required for functions that don't call others
+    \item \textbf{Non-leaf function convention:} Must save r1:r2:r3 to stack before nested calls
+\end{itemize}
+
+\subsection{Pipeline Enhancements}
+\begin{itemize}
+    \item Dedicated 12-bit return address read path in ID stage
+    \item Forwarding logic for r1, r2, r3 to handle hazards on JR
+    \item JAL executes in ID stage with three simultaneous register writes
+    \item JR hazard handling documented (forwarding from EX/MEM/WB stages)
+\end{itemize}
+
+\subsection{Instruction Format Updates}
+\begin{itemize}
+    \item J-type format split into two variants based on bit [11]:
+    \begin{itemize}
+        \item Bit [11] = 0: J (unconditional jump, 12-bit range)
+        \item Bit [11] = 1: JAL (jump and link, 11-bit range)
+    \end{itemize}
+    \item EXT opcode function code allocation updated:
+    \begin{itemize}
+        \item 0x0: ADC (existing)
+        \item 0x1: SBB (existing)
+        \item 0x2: NEG (existing)
+        \item 0x3: JR (new)
+        \item 0x4--0xF: Reserved for future use
+    \end{itemize}
+\end{itemize}
+
+\subsection{Documentation Additions}
+\begin{itemize}
+    \item Complete JAL/JR instruction specifications with examples
+    \item Leaf vs non-leaf function prologue/epilogue decision tree
+    \item Nested function call examples with stack management
+    \item Tail call optimization patterns
+    \item Register usage convention table updated
+    \item Pseudo-instruction RET added (expands to JR r1)
+\end{itemize}
+
+\subsection{Compiler Guidance}
+\begin{itemize}
+    \item JAL range limitation documented (11-bit = 2048 nibble max)
+    \item Trampoline strategy for calling functions beyond 0x7FF
+    \item Code layout optimization recommendations
+    \item Hot function placement in low memory (JAL-reachable range)
+    \item Linker responsibilities for trampoline generation
+\end{itemize}
+
+\textbf{Breaking Changes from v0.1.0:}
+\begin{itemize}
+    \item Calling convention incompatible with v0.1.0 (argument registers changed)
+    \item r1, r2, r3 now reserved for return addresses (not general-purpose)
+    \item Function prologue requirements changed (leaf functions need no prologue)
+\end{itemize}
+
+\textbf{Known Limitations:}
+\begin{itemize}
+    \item JAL limited to 11-bit range (first 2048 nibbles of instruction memory)
+    \item Functions beyond 0x7FF require trampoline mechanism
+    \item Return address uses 3 registers (reduces general-purpose register count)
+    \item No PC-relative call instruction (all calls are absolute addressing)
+\end{itemize}
+
+\textbf{Remaining for v1.0:}
+\begin{itemize}
+    \item Consider JALR with PC-relative addressing (±128 nibble range)
+    \item Investigate full 12-bit JAL encoding options
+    \item Additional example programs demonstrating call/return patterns
+    \item Hardware verification of dedicated return address path
+    \item Compiler implementation with trampoline generation
+    \item Linker specification for code layout optimization
+\end{itemize}
+
 \section{Future Versions}
 
 \subsection{Planned for v1.0 (Silicon)}
 \begin{itemize}
-    \item JALR instruction (indirect jump with link)
+    \item JALR instruction with PC-relative addressing (under consideration)
+    \item Full 12-bit JAL range if encoding space found
     \item Hardware verification complete
     \item Tapeout-ready RTL
     \item Complete test suite
-    \item Assembler and toolchain
+    \item Assembler and toolchain with trampoline support
     \item Reference implementation in Verilog
 \end{itemize}
 
 \subsection{Potential v2.0 Enhancements}
 \begin{itemize}
     \item Hardware multiply/divide
-    \item Interrupt support
+    \item Interrupt support with context save/restore
     \item Memory-mapped I/O specification
     \item DMA controller
     \item Cache hierarchy
     \item Floating-point coprocessor (4-bit mantissa experiments)
+    \item Branch delay slots for zero-cycle branches
 \end{itemize}
+
 
 \end{document}
