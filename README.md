@@ -9,8 +9,7 @@ revolution happened in 1971 instead of 1981?"
 ![GitHub Stars](https://img.shields.io/github/stars/jking323/risc-4?style=social)
 
 [![Download PDF](https://img.shields.io/badge/download-ISA%20Spec%20PDF-red?style=for-the-badge)](https://github.com/jking323/risc-4/releases/latest/download/risc4-isa-spec.pdf)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1234567.svg)](https://doi.org/10.5281/zenodo.1234567)
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18341469.svg)](https://doi.org/10.5281/zenodo.18341469)
 
 ## Quick Links
 
