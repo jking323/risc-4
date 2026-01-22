@@ -14,7 +14,6 @@ revolution happened in 1971 instead of 1981?"
 
 ## Quick Links
 
-- [ISA Specification (PDF)](docs/isa-spec/releases/risc4-isa-v1.0.pdf)
 - [Instruction Set Reference](docs/isa-spec/risc4-isa-spec.pdf#section.4)
 - [Simulator & Tools](#tools)
 
