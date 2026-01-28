@@ -1,74 +1,129 @@
-\documentclass[11pt,letterpaper,twoside]{report}
+\documentclass[11pt,letterpaper,twoside,openany]{memoir}
+
+% ============================================================
+% COLORS
+% ============================================================
+\usepackage{xcolor}
+\definecolor{chaptercolor}{RGB}{191,87,0}  % Warm burnt orange
+% Alternative warm colors:
+% \definecolor{chaptercolor}{RGB}{178,34,34}  % Firebrick red
+% \definecolor{chaptercolor}{RGB}{205,92,92}  % Indian red
+% \definecolor{chaptercolor}{RGB}{184,134,11} % Dark goldenrod
+
+% ============================================================
+% MEMOIR-SPECIFIC CONFIGURATION
+% ============================================================
+% Page layout
+\setlrmarginsandblock{1in}{1in}{*}
+\setulmarginsandblock{1in}{1in}{*}
+\checkandfixthelayout
+
+
+\makechapterstyle{spacer}{%
+  \chapterstyle{default}
+  \renewcommand*{\printchaptername}{%
+    \pagecolor{chaptercolor}%
+    \begin{flushright}
+    {\Large\bfseries\color{white} CHAPTER}
+    \end{flushright}
+  }
+  \renewcommand*{\chapternamenum}{\par\vspace{0.5cm}}
+  \renewcommand*{\printchapternum}{%
+    \begin{flushright}
+    {\fontsize{60}{72}\selectfont\color{white}\thechapter}
+    \end{flushright}
+  }
+  \renewcommand*{\printchaptertitle}[1]{%
+    \begin{flushright}
+    {\Huge\bfseries\color{white} ##1}
+    \end{flushright}
+  }
+  \renewcommand*{\afterchapternum}{\par\vspace{1cm}}
+  \renewcommand*{\afterchaptertitle}{%
+    \par\vfill
+    \clearpage
+    \pagecolor{white}%  % Reset page color after chapter page
+  }
+}
+\chapterstyle{spacer}
+
+% Section spacing - left justified
+\setsecheadstyle{\Large\bfseries\raggedright}
+\setbeforesecskip{12pt plus 4pt minus 2pt}
+\setaftersecskip{6pt plus 2pt minus 2pt}
+
+\setsubsecheadstyle{\large\bfseries\raggedright}
+\setbeforesubsecskip{10pt plus 3pt minus 2pt}
+\setaftersubsecskip{4pt plus 2pt minus 2pt}
+
+\setsubsubsecheadstyle{\normalsize\bfseries\raggedright}
+
+% Headers/footers
+\makepagestyle{mystyle}
+\makeevenhead{mystyle}{\thepage}{}{\leftmark}
+\makeoddhead{mystyle}{\rightmark}{}{\thepage}
+\makeevenfoot{mystyle}{}{}{}
+\makeoddfoot{mystyle}{}{}{}
+\pagestyle{mystyle}
+
+% No headers/footers on chapter pages
+\aliaspagestyle{chapter}{empty}
+
+% Force all paragraphs to be left-aligned
+\setlength{\parindent}{0pt}
+\setlength{\parfillskip}{0pt plus 1fil}
+
+% ============================================================
+% TABLE OF CONTENTS FORMATTING
+% ============================================================
+% Remove the blank page before TOC title
+\renewcommand{\tocheadstart}{}
+% Make TOC title smaller and less spaced
+\renewcommand{\printtoctitle}[1]{\LARGE\bfseries #1}
+\renewcommand{\aftertoctitle}{\par\vspace{1cm}}
 
 % ============================================================
 % PACKAGES
 % ============================================================
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}           % Better fonts
-\usepackage[margin=1in]{geometry}
-\usepackage{hyperref}          % Clickable TOC, references
-\usepackage{graphicx}          % Include figures
-\usepackage{listings}          % Code listings
-\usepackage{xcolor}            % Colors
-\usepackage{tabularx}          % Better tables
-\usepackage{booktabs}          % Professional tables
-\usepackage{fancyhdr}          % Headers/footers
-\usepackage{tikz}              % Diagrams
-\usepackage{bytefield}         % Instruction encoding diagrams
-\usepackage{amsmath}           % Math symbols
-\usepackage{float}             % Better figure placement
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{amsmath}
 \usepackage{amssymb}
-% ============================================================
-% DISCOURAGE AWKWARD PAGE BREAKS
-% ============================================================
 
-% Penalize page breaks after section/subsection headings
-\usepackage{titlesec}
-\titlespacing*{\section}{0pt}{12pt plus 4pt minus 2pt}{6pt plus 2pt minus 2pt}[0pt]
-\titlespacing*{\subsection}{0pt}{10pt plus 3pt minus 2pt}{4pt plus 2pt minus 2pt}[0pt]
-\titlespacing*{\subsubsection}{0pt}{8pt plus 2pt minus 2pt}{3pt plus 1pt minus 1pt}[0pt]
-
-% Penalties: higher number = more reluctance to break
-\clubpenalty=10000        % Prevent orphan lines (first line of paragraph alone at bottom)
-\widowpenalty=10000       % Prevent widow lines (last line of paragraph alone at top)
-\displaywidowpenalty=10000 % Same for display math
-
-% Discourage breaking after section headings
+\usepackage{tikz}
+\usepackage{bytefield}
+\usepackage{booktabs}
 \usepackage{needspace}
-\preto\subsection{\needspace{5\baselineskip}}
 
-% Keep list items together
+% Enumitem - list control
 \usepackage{enumitem}
 \setlist{nosep, topsep=3pt, partopsep=0pt, parsep=0pt, itemsep=2pt}
 
-% Prefer breaking at section boundaries, not within
-\renewcommand{\bottomfraction}{0.3}  % Less space for floats at bottom
-\renewcommand{\topfraction}{0.7}     % More space at top
+% Hyperref - load near end
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    pdftitle={RISC-4 ISA Specification v0.2.0},
+    pdfauthor={Jeremy King}
+}
+
+% Code listings - after hyperref
+\usepackage{listings}
+
 % ============================================================
-% SPACING OPTIMIZATIONS
+% PENALTIES & SPACING
 % ============================================================
-\usepackage{enumitem}
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
 
-% Tighter section spacing
-\titlespacing*{\section}{0pt}{12pt plus 4pt minus 2pt}{6pt plus 2pt minus 2pt}
-\titlespacing*{\subsection}{0pt}{10pt plus 3pt minus 2pt}{4pt plus 2pt minus 2pt}
-\titlespacing*{\subsubsection}{0pt}{8pt plus 2pt minus 2pt}{3pt plus 1pt minus 1pt}
-
-% Tighter list spacing
-\setlist{nosep, topsep=3pt, partopsep=0pt, parsep=0pt, itemsep=2pt}
-
-% Reduce paragraph spacing
 \setlength{\parskip}{3pt plus 1pt minus 1pt}
-
-% Adjust float parameters
-\renewcommand{\topfraction}{0.85}
-\renewcommand{\bottomfraction}{0.70}
-\renewcommand{\textfraction}{0.15}
-\renewcommand{\floatpagefraction}{0.66}
-\setcounter{topnumber}{3}
-\setcounter{bottomnumber}{2}
-\setcounter{totalnumber}{4}
+\setlength{\parindent}{0pt}
 
 % ============================================================
 % DOCUMENT METADATA
@@ -77,46 +132,16 @@
 \newcommand{\specdate}{January 21, 2026}
 \newcommand{\specstatus}{Pre-Silicon}
 
-\title{
-    \Huge\textbf{RISC-4 ISA Specification}\\
-    \vspace{0.5cm}
-    \Large Version \specversion\\
-    \large \specstatus
-}
-\author{Jeremy King}
-\date{\specdate}
-
-% ============================================================
-% HYPERREF SETUP
-% ============================================================
-\hypersetup{
-    colorlinks=true,
-    linkcolor=blue,
-    filecolor=magenta,
-    urlcolor=cyan,
-    pdftitle={RISC-4 ISA Specification v\specversion},
-    pdfauthor={Jeremy King},
-}
-
-% ============================================================
-% HEADER/FOOTER
-% ============================================================
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[LE,RO]{\textit{RISC-4 ISA v\specversion}}
-\fancyhead[RE,LO]{\leftmark}
-\fancyfoot[C]{\thepage}
-
 % ============================================================
 % CODE LISTING STYLE (for assembly examples)
 % ============================================================
 \lstdefinelanguage{RISC4}{
-    morekeywords={ADD, SUB, AND, OR, XOR, SLT, SLL, SRL,
+    morekeywords={ADD, SUB, AND, OR, XOR, SLT, SHF, ADC, SBB, NEG,
                   ADDI, ANDI, ORI, SLTI,
                   LW, SW,
-                  BEZ, BNZ, BLZ, BGZ,
-                  J, JAL, JALR,
-                  NOP, MOV, LI, NOT, NEG},
+                  BEQ, BNE, BCS, BCC,
+                  J, JAL,
+                  NOP, MOV, LI, NOT},
     sensitive=false,
     morecomment=[l]{\#},
     morestring=[b]",
@@ -155,11 +180,11 @@
 % Binary value
 \newcommand{\bin}[1]{\texttt{0b#1}}
 
-% Preamble Definition
+% Instruction definition table
 \newcommand{\instructionDef}[6]{
     \begin{table}[H]
-    \centering          % Centers the table
-    \small              % Keeps the font compact
+    \centering
+    \small
     \begin{tabular}{@{}ll@{}}
     \toprule
     \textbf{Field} & \textbf{Value} \\
@@ -176,14 +201,44 @@
     \vspace{6pt}
 }
 
-
 % ============================================================
 % DOCUMENT START
 % ============================================================
 \begin{document}
 \raggedbottom
 
-\maketitle
+
+% ============================================================
+% TITLE PAGE
+% ============================================================
+\begin{titlingpage}
+\begin{center}
+\vspace*{2cm}
+
+{\Huge\bfseries RISC-4}\\[0.5cm]
+{\LARGE Instruction Set Architecture}\\[0.5cm]
+{\large Specification Document}\\[2cm]
+
+{\Large Version \specversion}\\[0.5cm]
+{\large \specstatus}\\[3cm]
+
+{\large Jeremy King}\\[0.3cm]
+{\large \specdate}\\[2cm]
+
+\vfill
+
+{\large A 4-bit RISC Processor\\
+for Educational Implementation in SKY130}
+
+\end{center}
+\end{titlingpage}
+
+\cleardoublepage
+
+% ============================================================
+% FRONT MATTER
+% ============================================================
+\frontmatter
 
 \begin{abstract}
 RISC-4 is a 4-bit load/store RISC architecture designed to demonstrate that RISC principles are independent of datapath width. This specification defines the instruction set architecture (ISA), programmer's model, memory organization, and calling conventions for the RISC-4 processor.
@@ -191,8 +246,15 @@ RISC-4 is a 4-bit load/store RISC architecture designed to demonstrate that RISC
 This document represents an alternate history: ``What if the RISC revolution occurred during the 4-bit era of the early 1970s?''
 \end{abstract}
 
-\tableofcontents
+\clearpage
 
+\tableofcontents
+\clearpage
+
+% ============================================================
+% MAIN CONTENT
+% ============================================================
+\mainmatter
 
 % ============================================================
 % CHAPTER 1: INTRODUCTION
@@ -226,6 +288,7 @@ The RISC-4 architecture adheres to the following principles:
 \midrule
 Datapath width & 4 bits \\
 Instruction width & 16 bits (fixed) \\
+Memory Architecture & Von Neumann(unified instruction/data) \\
 Address space & 12 bits (4096 nibbles) \\
 General purpose registers & 16 × 4 bits \\
 Pipeline stages & 5 (IF, ID, EX, MEM, WB) \\
@@ -236,6 +299,7 @@ Endianness & Little-endian \\
 \label{tab:params}
 \end{table}
 
+\begin{samepage}
 \section{Comparison to Historical Architectures}
 
 Table~\ref{tab:comparison} compares RISC-4 to its historical inspirations.
@@ -259,7 +323,7 @@ CPI (average) & 8.0 & ~1.2 & ~1.3 \\
 \caption{Architectural Comparison}
 \label{tab:comparison}
 \end{table}
-
+\end{samepage}
 % ============================================================
 % CHAPTER : PROGRAMMER'S MODEL
 % ============================================================
@@ -276,21 +340,21 @@ RISC-4 provides 16 general-purpose registers, each 4 bits wide. While all regist
 \textbf{Register} & \textbf{Name} & \textbf{Usage (Convention)} \\
 \midrule
 \reg{0}  & zero & Hardwired to zero \\
-\reg{1}  & ra   & Return address \\
-\reg{2}  & a0   & Argument 0 / return value \\
-\reg{3}  & a1   & Argument 1 \\
-\reg{4}  & a2   & Argument 2 \\
-\reg{5}  & a3   & Argument 3 \\
-\reg{6}  & v0   & Return value \\
-\reg{7}  & t0   & Temporary (caller-saved) \\
-\reg{8}  & t1   & Temporary (caller-saved) \\
-\reg{9}  & t2   & Temporary (caller-saved) \\
-\reg{10} & s0   & Saved (callee-saved) \\
-\reg{11} & s1   & Saved (callee-saved) \\
-\reg{12} & s2   & Saved (callee-saved) \\
-\reg{13} & s3   & Saved (callee-saved) \\
-\reg{14} & sp   & Stack pointer \\
-\reg{15} & fp   & Frame pointer \\
+\reg{1}  & ra_h   & Return address [11:8] \\
+\reg{2}  & ra_m   & Return Address [7:4] \\
+\reg{3}  & ra_l   & Return Address [3:0] \\
+\reg{4}  & a0   & Argument 0 / pointer high \\
+\reg{5}  & a1   & Argument 1 / pointer mid \\
+\reg{6}  & a2   & Argument 2 / pointer low \\
+\reg{7}  & t0   & Temp / pointer high \\
+\reg{8}  & t1   & Temp / pointer mid \\
+\reg{9}  & t2   & Temp / pointer low \\
+\reg{10} & fp_h   & Frame pointer [11:8] \\
+\reg{11} & fp_m   & Frame pointer [7:4] \\
+\reg{12} & fp_l   & Frame pointer [3:0] \\
+\reg{13} & sp_h   & Stack pointer [11:8] \\
+\reg{14} & sp_m   & Stack pointer [7:4] \\
+\reg{15} & sp_l   & Stack pointer [3:0] \\
 \bottomrule
 \end{tabular}
 \caption{Register File Organization}
@@ -319,25 +383,26 @@ To address memory beyond the 4-bit limit of a single register, RISC-4 utilizes \
 
 \begin{table}[H]
 \centering
-\begin{tabular}{@{}ccc@{}}
+\begin{tabular}{@{}ccccc@{}}
 \toprule
-\textbf{Pointer Name} & \textbf{High Nibble (4-bit)} & \textbf{Low Nibble (4-bit)} \\
+\textbf{Pointer} & \textbf{High} & \textbf{Mid} & \textbf{Low} & \textbf{Usage} \\
+\textbf{Name} & \textbf{Nibble} & \textbf{Nibble} & \textbf{Nibble} & \\
 \midrule
-Pair 0 & r0 & r1 \\
-Pair 2 & r2 & r3 \\
-... & ... & ... \\
-Frame Pointer (fp) & r12 & r13 \\
-Stack Pointer (sp) & r14 & r15 \\
+Triple 1  & r1  & r2  & r3  & Return Address \\
+Triple 4  & r4  & r5  & r6  & General Purpose / Args \\
+Triple 7  & r7  & r8  & r9  & General Purpose / Temps \\
+Triple 10 & r10 & r11 & r12 & Frame Pointer \\
+Triple 13 & r13 & r14 & r15 & Stack Pointer \\
 \bottomrule
 \end{tabular}
-\caption{Register Pair Organization}
+\caption{Register Triple Organization}
 \label{tab:pairs}
 \end{table}
 
 \noindent \textbf{Rules for Pairing:}
 \begin{enumerate}
     \item \textbf{Alignment:} Base registers in load/store instructions must be even-numbered (e.g., r14, r12).
-    \item \textbf{Formation:} \texttt{Address = (High\_Reg << 4) | Low\_Reg}.
+    \item \textbf{Formation:} \texttt{Address = (r[base] << 8) | r[base+1] << 4 | r[base+2]}.
     \item \textbf{Range:} This allows for a Data Address Space of 256 nibbles (\hex{00} to \hex{FF}).
 \end{enumerate}
 
@@ -346,77 +411,72 @@ Stack Pointer (sp) & r14 & r15 \\
 % ============================================================
 \chapter{Instruction Formats}
 
-All RISC-4 instructions are exactly 16 bits wide, divided into four formats based on instruction type.
-
 \section{Format Summary}
+
+All RISC-4 instructions are exactly 16 bits wide, divided into four formats based on instruction type.
 
 The RISC-4 ISA uses fixed 16-bit instructions aligned on 16-bit boundaries. The primary opcode is always located in the most significant 4 bits [15:12].
 
 Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across the different instruction types.
 
-\begin{figure}[H]
+
 \centering
 % Define a macro for row labels to ensure consistent spacing
 \newcommand{\fmtlabel}[1]{\makebox[1.5cm][r]{\textbf{#1} \hspace{1em}}}
 
-\begin{subfigure}
+The RISC-4 ISA uses fixed 16-bit instructions aligned on 16-bit boundaries. The primary opcode is always located in the most significant 4 bits [15:12].
+Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across the different instruction types.
+
+
+\centering
+
 % R-Type
-\fmtlabel{R-Type}
-\begin{bytefield}[bitwidth=1.5em]{16}
+\textbf{R-Type}\\[0.3cm]
+\begin{bytefield}[bitwidth=1.5em, endianness=big]{16}
     \bitheader{0,3,4,7,8,11,12,15} \\
-    \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{rd} & \bitbox{4}{rs} & \bitbox{4}{rt}
+    \bitbox{4}{rt} & \bitbox{4}{rs} & \bitbox{4}{rd} & \bitbox{4}{\textbf{Opcode}}
 \end{bytefield}
-\vspace{0.5cm} % Spacing between rows
-\caption{R-type Format}
-\end{subfigure}
 
-\begin{subfigure}
+\vspace{0.7cm}
+
 % I-Type (Arithmetic)
-\fmtlabel{I-Type (Arith)}
-\begin{bytefield}[bitwidth=1.5em]{16}
+\textbf{I-Type (Arith)}\\[0.3cm]
+\begin{bytefield}[bitwidth=1.5em, endianness=big]{16}
     \bitheader{0,3,4,7,8,11,12,15} \\
-    \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{rd} & \bitbox{4}{rs} & \bitbox{4}{imm4}
+    \bitbox{4}{imm4} & \bitbox{4}{rs} & \bitbox{4}{rd} & \bitbox{4}{\textbf{Opcode}}
 \end{bytefield}
-\vspace{0.5cm}
-\caption{I-Type (Arith) Format}
-\end{subfigure}
 
-\begin{subfigure}
+\vspace{0.7cm}
+
 % I-Type (Branch)
-\fmtlabel{I-Type (Branch)}
-\begin{bytefield}[bitwidth=1.5em]{16}
+\textbf{I-Type (Branch)}\\[0.3cm]
+\begin{bytefield}[bitwidth=1.5em, endianness=big]{16}
     \bitheader{0,7,8,11,12,15} \\
-    \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{cond} & \bitbox{8}{offset8}
+    \bitbox{8}{offset8} & \bitbox{4}{cond} & \bitbox{4}{\textbf{Opcode}}
 \end{bytefield}
-\vspace{0.5cm}
-\caption{I-type (Branch Format)}
-\end{subfigure}
 
-\begin{subfigure}
+\vspace{0.7cm}
+
 % M-Type
-\fmtlabel{M-Type}
-\begin{bytefield}[bitwidth=1.5em]{16}
+\textbf{M-Type}\\[0.3cm]
+\begin{bytefield}[bitwidth=1.5em, endianness=big]{16}
     \bitheader{0,3,4,7,8,11,12,15} \\
-    \bitbox{4}{\textbf{Opcode}} & \bitbox{4}{rd / rs} & \bitbox{4}{base} & \bitbox{4}{offset4}
+    \bitbox{4}{offset4} & \bitbox{4}{base} & \bitbox{4}{rd / rs} & \bitbox{4}{\textbf{Opcode}}
 \end{bytefield}
-\vspace{0.5cm}
-\caption{M-type Format}
-\end{subfigure}
 
-\begin{subfigure}
+\vspace{0.7cm}
+
 % J-Type
-\fmtlabel{J-Type}
-\begin{bytefield}[bitwidth=1.5em]{16}
+\textbf{J-Type}\\[0.3cm]
+\begin{bytefield}[bitwidth=1.5em, endianness=big]{16}
     \bitheader{0,11,12,15} \\
-    \bitbox{4}{\textbf{Opcode}} & \bitbox{12}{target12}
+    \bitbox{12}{target12} & \bitbox{4}{\textbf{Opcode}}
 \end{bytefield}
-\caption{J-type Format}
-\end{subfigure}
 
 \caption{RISC-4 Instruction Format Summary}
 \label{fig:formatsummary}
-\end{figure}
 
+\needspace{8\baselineskip}
 \noindent \textbf{Field Definitions:}
 \begin{itemize}
     \item \textbf{Opcode:} Primary instruction operation code [15:12].
@@ -430,6 +490,7 @@ Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across t
     \item \textbf{target12:} 12-bit absolute jump address [11:0].
 \end{itemize}
 
+
 % ============================================================
 % Chapter : Flags
 % ============================================================
@@ -438,7 +499,7 @@ Figure~\ref{fig:formatsummary} illustrates how the 16 bits are utilized across t
 
 \section{Quick Reference: Flag Behavior}
 
-\begin{table}[H]
+\begin{table}
 \centering
 \small
 \begin{tabular}{|l|c|c|l|}
@@ -478,6 +539,7 @@ J & — & — & Flags preserved \\
 \end{table}
 
 \textbf{Legend:}
+
 \begin{itemize}
     \item \textbf{Set}: Flag updated based on result
     \item \textbf{0}: Flag cleared (forced to 0)
@@ -576,7 +638,7 @@ BEQ equal           # Branch if Z=1 (difference was zero)
 
 \subsection{Instructions That Set Flags}
 
-\begin{table}[H]
+\begin{table}
 \centering
 \begin{tabular}{|l|c|c|l|}
 \hline
@@ -609,13 +671,13 @@ The following instructions \textbf{do not modify} flags:
 \end{itemize}
 
 \textbf{Critical Implication:} Load/store operations between an ALU instruction and a branch will preserve flags:
-\begin{samepage}
+
 \begin{lstlisting}[caption={Flags preserved across load}]
 SUB r3, r1, r2      # Sets Z flag
 LW  r4, 0(r14)      # Does NOT change Z flag
 BEQ equal           # Still uses Z from SUB
 \end{lstlisting}
-\end{samepage}
+\needspace{8\baselineskip}
 \section{Comparison Operations}
 
 \subsection{Equality (==, !=)}
@@ -625,7 +687,6 @@ SUB r3, r1, r2      # r3 = r1 - r2
 BEQ equal           # Branch if Z=1 (r1 == r2)
 BNE not_equal       # Branch if Z=0 (r1 != r2)
 \end{lstlisting}
-\end{samepage}
 \subsection{Unsigned Comparison (<, >=)}
 
 For unsigned values (0 to 15):
@@ -647,7 +708,7 @@ BEQ greater_equal   # Branch if r3 == 0 (comparison false)
 \end{lstlisting}
 \end{samepage}
 \textbf{Rationale:} Signed comparison requires checking both the sign bit and magnitude. The SLT instruction implements the full signed comparison logic, outputting a boolean result that can be tested with the zero flag.
-
+\end{samepage}
 \section{Pipeline Considerations}
 
 \subsection{Flag Hazards}
@@ -733,7 +794,7 @@ While some RISC designs (MIPS, RISC-V) avoid condition codes, RISC-4 adopts flag
     \item Clear update rules: ALU sets, Load/Store preserves
     \item Intuitive for programmers familiar with assembly
 \end{itemize}
-
+\begin{samepage}
 \subsection{What RISC-4 Avoids}
 
 RISC-4's flag implementation avoids the complexity criticized in CISC designs:
@@ -746,6 +807,8 @@ RISC-4's flag implementation avoids the complexity criticized in CISC designs:
 \end{itemize}
 
 This keeps the design simple, regular, and pipeline-friendly — core RISC principles.
+\end{samepage}
+
 
 % ============================================================
 % CHAPTER : INSTRUCTION SET
@@ -1022,7 +1085,7 @@ These instructions share Opcode 7 and use a 2-operand destructive format (\textt
 \begin{lstlisting}
 ADC rd, rs
 \end{lstlisting}
-\instructionDef{7}{R-type}{0111 dddd ssss 0000}{rd \leftarrow rd + rs + Carry}{Carry}{4}
+\instructionDef{7}{R-type}{0111 dddd ssss 0000}{rd \leftarrow rd + rs + Carry}{C, Z}{4}
 
 \noindent \textbf{Description:} Adds \texttt{rs} and the current \textbf{Carry} flag to \texttt{rd} \textbf{Zero} flag set if result == \textbf{0}. Used for multi-nibble addition.
 
@@ -1046,7 +1109,7 @@ ADC r0, r2, r4      # High nibble: r0 = r2 + r4 + C
 \begin{lstlisting}
 SBB rd, rs
 \end{lstlisting}
-\instructionDef{7}{R-type}{0111 dddd ssss 0001}{rd \leftarrow rd - rs - Carry}{Carry}{4}
+\instructionDef{7}{R-type}{0111 dddd ssss 0001}{rd \leftarrow rd - rs - Carry}{C, Z}{4}
 
 \noindent \textbf{Description:} Subtracts \texttt{rs} and the Carry flag (borrow) from \texttt{rd} \textbf{Zero} flag set if result == \textbf{0}. Used for multi-nibble subtraction.
 
@@ -1055,7 +1118,7 @@ SBB rd, rs
     \item \textbf{C} ← 1 if borrow occurred, else 0
     \item \textbf{Z} ← 1 if result == 0, else 0
 \end{itemize}
-
+\begin{samepage}
 \textbf{Multi-Precision Example:}
 \begin{lstlisting}
 # 8-bit subtraction: r0:r1 = r2:r3 - r4:r5
@@ -1063,7 +1126,7 @@ SUB r1, r3, r5      # Low nibble: r1 = r3 - r5, sets C if borrow
 SBB r0, r2, r4      # High nibble: r0 = r2 - r4 - C
 # Z flag reflects whether entire 8-bit result is zero
 \end{lstlisting}
-
+\end{samepage}
 \subsection{NEG -- Negate (Two's Complement)}
 \begin{lstlisting}
 NEG rd, rs
